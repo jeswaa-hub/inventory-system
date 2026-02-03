@@ -1,8 +1,39 @@
 // Global Config
 const API_URL = "https://script.google.com/macros/s/AKfycby8fW5VWaXu5tgDUe76LwaWJb8L-zTcTyqwtiSADM_f_-JRbQwnKnYmEYACV6Oj3SGm/exec";
 
+let globalLoadingCount = 0;
+let globalLoadingTimer = null;
+
+function showGlobalLoading() {
+  const el = document.getElementById('global-loading');
+  if (!el) return;
+  globalLoadingCount += 1;
+
+  if (globalLoadingCount === 1) {
+    if (globalLoadingTimer) clearTimeout(globalLoadingTimer);
+    globalLoadingTimer = setTimeout(() => {
+      if (globalLoadingCount > 0) el.classList.remove('hidden');
+    }, 150);
+  }
+}
+
+function hideGlobalLoading() {
+  const el = document.getElementById('global-loading');
+  if (!el) return;
+  globalLoadingCount = Math.max(0, globalLoadingCount - 1);
+
+  if (globalLoadingCount === 0) {
+    if (globalLoadingTimer) {
+      clearTimeout(globalLoadingTimer);
+      globalLoadingTimer = null;
+    }
+    el.classList.add('hidden');
+  }
+}
+
 // --- API Helper ---
 async function callApi(action, data = null) {
+  showGlobalLoading();
   try {
     let response;
     if (data) {
@@ -29,6 +60,8 @@ async function callApi(action, data = null) {
     console.error('API Error:', error);
     alert('API Error: ' + error.message);
     throw error;
+  } finally {
+    hideGlobalLoading();
   }
 }
 
@@ -61,6 +94,7 @@ async function loadSection(sectionId) {
     // But the HTML structure only needs to be loaded once.
     if (!wrapper.hasAttribute('data-loaded')) {
         try {
+            showGlobalLoading();
             const resp = await fetch(`${sectionId}.html`);
             if(!resp.ok) throw new Error('Failed to load template');
             const html = await resp.text();
@@ -69,6 +103,8 @@ async function loadSection(sectionId) {
         } catch(e) {
             wrapper.innerHTML = `<p class="text-red-500">Error loading module: ${e.message}</p>`;
             return;
+        } finally {
+            hideGlobalLoading();
         }
     }
     

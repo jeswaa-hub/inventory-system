@@ -101,6 +101,22 @@
     </style>
   </head>
   <body class="bg-gray-100 font-sans h-screen flex overflow-hidden">
+    <div id="global-loading" class="hidden fixed inset-0 z-50">
+      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+      <div class="absolute inset-0 flex items-center justify-center p-6">
+        <div class="w-full max-w-sm rounded-2xl bg-white/95 shadow-xl border border-white/30 p-6">
+          <div class="flex items-center gap-4">
+            <div class="h-12 w-12 rounded-xl gradient-bg flex items-center justify-center shadow-md">
+              <div class="h-6 w-6 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
+            </div>
+            <div class="min-w-0">
+              <div class="text-base font-semibold text-gray-900">Syncing data</div>
+              <div class="text-sm text-gray-600 truncate">Please wait habang kino-collect ang latest records…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Mobile Menu Button -->
     <div class="lg:hidden fixed top-4 left-4 z-30">
