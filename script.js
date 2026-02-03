@@ -1,5 +1,5 @@
 // Global Config
-const API_URL = "https://script.google.com/macros/s/AKfycbyFAKniO8pqJTgwQwoK22ye5kREJaHdNHFGTzoT7ANLniAsjzwCU7rkZJ61T_1RkUL0/exec";
+const API_URL = "1Vt_jqc3vo0Z_YMlkSTJVFGDNjB9efBC1075DVu0qbt9p_-0rZ1qfDNYC";
 
 // --- API Helper ---
 async function callApi(action, data = null) {
