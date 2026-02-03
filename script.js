@@ -1,5 +1,5 @@
 // Global Config
-const API_URL = "1Vt_jqc3vo0Z_YMlkSTJVFGDNjB9efBC1075DVu0qbt9p_-0rZ1qfDNYC";
+const API_URL = "https://script.google.com/macros/s/AKfycby8fW5VWaXu5tgDUe76LwaWJb8L-zTcTyqwtiSADM_f_-JRbQwnKnYmEYACV6Oj3SGm/exec";
 
 // --- API Helper ---
 async function callApi(action, data = null) {
@@ -70,6 +70,14 @@ async function loadSection(sectionId) {
             wrapper.innerHTML = `<p class="text-red-500">Error loading module: ${e.message}</p>`;
             return;
         }
+    }
+    
+    // Close mobile menu on navigation
+    if (window.innerWidth < 1024) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) {
+        sidebar.classList.add('-translate-x-full');
+      }
     }
     
     // Trigger Data Load
@@ -308,3 +316,33 @@ function openModal(modalId) {
 function closeModal(modalId) {
   document.getElementById(modalId).classList.add('hidden');
 }
+
+// --- Mobile Navigation ---
+function initMobileMenu() {
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const sidebar = document.getElementById('sidebar');
+  
+  if (menuBtn && sidebar) {
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+    
+    // Close menu when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth < 1024 && 
+          !sidebar.contains(e.target) && 
+          !menuBtn.contains(e.target) &&
+          !sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.add('-translate-x-full');
+      }
+    });
+  }
+}
+
+// Close mobile menu when navigating
+// Mobile menu functionality added to the existing loadSection function
+
+// Initialize mobile menu on page load
+document.addEventListener('DOMContentLoaded', function() {
+  initMobileMenu();
+});
