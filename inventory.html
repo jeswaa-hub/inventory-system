@@ -1,0 +1,100 @@
+<div id="inventory-content">
+   <div class="bg-white shadow overflow-hidden rounded-lg">
+     <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+       <h3 class="text-lg leading-6 font-medium text-gray-900">Stock Levels</h3>
+       <button onclick="loadInventory()" class="text-blue-600 hover:text-blue-900 text-sm font-medium">Refresh</button>
+     </div>
+     <table class="min-w-full divide-y divide-gray-200">
+       <thead class="bg-gray-50">
+         <tr>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand/Model</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Qty</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Adjust Stock</th>
+         </tr>
+       </thead>
+       <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+         <!-- Data populated by JS -->
+       </tbody>
+     </table>
+   </div>
+</div>
+
+<!-- Adjust Stock Modal -->
+<div id="adjustStockModal" class="fixed z-50 inset-0 overflow-y-auto hidden">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal('adjustStockModal')"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Adjust Stock</h3>
+        <input type="hidden" id="adjust-item-id">
+        <div class="mt-2 space-y-4">
+          <p class="text-sm text-gray-500">Adjusting stock for: <span id="adjust-item-name" class="font-bold"></span></p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Adjustment Amount (Use negative for removal)</label>
+            <input type="number" id="adjust-amount" class="w-full border rounded p-2 mt-1" placeholder="e.g. 5 or -2">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Reason</label>
+            <input type="text" id="adjust-reason" class="w-full border rounded p-2 mt-1" placeholder="e.g. Restock, Damaged, Sold">
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+        <button type="button" onclick="submitStockAdjustment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">
+          Confirm Adjustment
+        </button>
+        <button type="button" onclick="closeModal('adjustStockModal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadInventory() {
+  google.script.run.withSuccessHandler(renderInventory).getInventory();
+}
+
+function renderInventory(items) {
+  const tbody = document.getElementById('inventory-table-body');
+  tbody.innerHTML = '';
+  items.forEach(item => {
+     const tr = document.createElement('tr');
+     tr.innerHTML = `
+       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.Item}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.BrandModel || ''}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${item.Qty}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Unit || ''}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Status}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+         <button onclick="openAdjustStockModal('${item.ID}', '${item.Item}')" class="text-indigo-600 hover:text-indigo-900">Adjust</button>
+       </td>
+     `;
+     tbody.appendChild(tr);
+  });
+}
+
+function openAdjustStockModal(id, name) {
+  document.getElementById('adjust-item-id').value = id;
+  document.getElementById('adjust-item-name').innerText = name;
+  document.getElementById('adjust-amount').value = '';
+  document.getElementById('adjust-reason').value = '';
+  openModal('adjustStockModal');
+}
+
+function submitStockAdjustment() {
+  const id = document.getElementById('adjust-item-id').value;
+  const amount = document.getElementById('adjust-amount').value;
+  const reason = document.getElementById('adjust-reason').value;
+  
+  google.script.run.withSuccessHandler(() => {
+    closeModal('adjustStockModal');
+    loadInventory();
+  }).adjustStock(id, amount, reason);
+}
+</script>
