@@ -1,6 +1,6 @@
 // --- API Configuration ---
 function doGet(e) {
-  const action = e.parameter.action;
+  const action = e && e.parameter ? e.parameter.action : null;
   
   // Dispatcher
   let result = {};
@@ -14,7 +14,7 @@ function doGet(e) {
     } else if (action === 'getAuditLogs') {
       result = getAuditLogs();
     } else {
-      result = { error: 'Invalid action' };
+      result = { error: action ? 'Invalid action' : 'Missing action' };
     }
   } catch (err) {
     result = { error: err.message };
@@ -28,6 +28,10 @@ function doPost(e) {
   // Handle POST requests (Actions that modify data)
   // Use text/plain to avoid CORS preflight issues on some clients
   let data;
+  if (!e || !e.postData || typeof e.postData.contents !== 'string') {
+    return ContentService.createTextOutput(JSON.stringify({ error: 'Missing request body' }))
+        .setMimeType(ContentService.MimeType.JSON);
+  }
   try {
     data = JSON.parse(e.postData.contents);
   } catch(err) {
@@ -35,7 +39,7 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
   }
   
-  const action = e.parameter.action;
+  const action = e && e.parameter ? e.parameter.action : null;
   let result = {};
   
   try {
@@ -50,7 +54,7 @@ function doPost(e) {
     } else if (action === 'addSupplier') {
       result = addSupplier(data);
     } else {
-      result = { error: 'Invalid action' };
+      result = { error: action ? 'Invalid action' : 'Missing action' };
     }
   } catch (err) {
     result = { error: err.message };
