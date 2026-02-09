@@ -172,6 +172,54 @@ const dashboardFilterState = {
   activityType: 'all'
 };
 
+const reportsLowStockPagination = {
+  currentPage: 1,
+  itemsPerPage: 10,
+  lastQuery: ''
+};
+
+const reportsPrintOptions = {
+  summary: true,
+  lowStock: true,
+  activity: true
+};
+
+let reportsLowStockPrintRestore = null;
+
+window.addEventListener('beforeprint', () => {
+  const reportsRoot = document.getElementById('reports-content');
+  if (!reportsRoot) return;
+  if (!reportsCache?.loaded) return;
+
+  document.body.classList.add('printing-reports');
+
+  if (reportsPrintOptions.lowStock) {
+    reportsLowStockPrintRestore = {
+      currentPage: reportsLowStockPagination.currentPage,
+      itemsPerPage: reportsLowStockPagination.itemsPerPage
+    };
+
+    reportsLowStockPagination.currentPage = 1;
+    reportsLowStockPagination.itemsPerPage = 1000000;
+    renderReportsView(String(globalSearchState.query || '').trim());
+  }
+});
+
+window.addEventListener('afterprint', () => {
+  const reportsRoot = document.getElementById('reports-content');
+  if (!reportsRoot) return;
+  if (!reportsCache?.loaded) return;
+
+  document.body.classList.remove('printing-reports');
+
+  if (reportsLowStockPrintRestore) {
+    reportsLowStockPagination.currentPage = reportsLowStockPrintRestore.currentPage;
+    reportsLowStockPagination.itemsPerPage = reportsLowStockPrintRestore.itemsPerPage;
+    reportsLowStockPrintRestore = null;
+  }
+  renderReportsView(String(globalSearchState.query || '').trim());
+});
+
 function showGlobalLoading(title, message) {
   const el = document.getElementById('global-loading');
   if (!el) return;
@@ -662,10 +710,22 @@ function renderChart(stats) {
     Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
     Chart.defaults.color = '#475569';
 
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const sales = [12, 19, 3, 5, 2, 3, 10];
-    const restocks = [2, 3, 20, 5, 1, 4, 2];
-    const trend = labels.map((_, i) => (sales[i] + restocks[i]) / 2);
+    const wa = stats && stats.weeklyActivity ? stats.weeklyActivity : null;
+    const asNums = arr => Array.isArray(arr) ? arr.map(v => Number(v)) : [];
+    const isValidNums = arr => Array.isArray(arr) && arr.length === 7 && arr.every(n => Number.isFinite(n));
+    const labels = Array.isArray(wa?.labels) && wa.labels.length === 7 ? wa.labels.map(s => String(s)) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const sales = (() => {
+      const a = asNums(wa?.sales);
+      return isValidNums(a) ? a : [12, 19, 3, 5, 2, 3, 10];
+    })();
+    const restocks = (() => {
+      const a = asNums(wa?.restocks);
+      return isValidNums(a) ? a : [2, 3, 20, 5, 1, 4, 2];
+    })();
+    const trend = (() => {
+      const a = asNums(wa?.trend);
+      return isValidNums(a) ? a : labels.map((_, i) => (sales[i] + restocks[i]) / 2);
+    })();
 
     window.myChart = new Chart(mainCtx, {
         data: {
@@ -673,7 +733,7 @@ function renderChart(stats) {
             datasets: [
               {
                 type: 'bar',
-                label: 'Sales',
+                label: 'Stock Out',
                 data: sales,
                 backgroundColor: salesGradient,
                 borderColor: 'rgba(59, 130, 246, 0.95)',
@@ -685,7 +745,7 @@ function renderChart(stats) {
               },
               {
                 type: 'bar',
-                label: 'Restocks',
+                label: 'Stock In',
                 data: restocks,
                 backgroundColor: restockGradient,
                 borderColor: 'rgba(16, 185, 129, 0.95)',
@@ -697,7 +757,7 @@ function renderChart(stats) {
               },
               {
                 type: 'line',
-                label: 'Trend',
+                label: 'Average',
                 data: trend,
                 borderColor: 'rgba(99, 102, 241, 0.95)',
                 backgroundColor: 'rgba(99, 102, 241, 0.12)',
@@ -722,12 +782,72 @@ function renderChart(stats) {
                     titleFont: { size: 13, weight: 600 },
                     bodyFont: { size: 12 },
                     displayColors: true,
-                    boxPadding: 4
+                    boxPadding: 4,
+                    callbacks: {
+                      label: ctx => {
+                        const raw = (ctx.parsed && typeof ctx.parsed.y !== 'undefined') ? ctx.parsed.y : ctx.parsed;
+                        const n = Number(raw);
+                        const v = Number.isFinite(n) ? (Number.isInteger(n) ? n : n.toFixed(1)) : raw;
+                        const label = String(ctx.dataset && ctx.dataset.label ? ctx.dataset.label : '').trim();
+                        return label ? `${label}: ${v}` : String(v);
+                      }
+                    }
                 }
             },
             scales: {
                 y: { beginAtZero: true, grid: { color: '#f1f5f9', drawBorder: false }, ticks: { padding: 10 } },
                 x: { grid: { display: false, drawBorder: false }, ticks: { padding: 10 } }
+            }
+        }
+    });
+
+    const stockCanvas = document.getElementById('stockChart');
+    if (!stockCanvas) return;
+
+    const stockCtx = stockCanvas.getContext('2d');
+    const totalItems = Number(stats?.totalItems) || 0;
+    const lowStock = Number(stats?.lowStock) || 0;
+    const outOfStock = Number(stats?.outOfStock) || 0;
+    const inStock = Math.max(0, totalItems - lowStock - outOfStock);
+
+    window.stockChart = new Chart(stockCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+            datasets: [
+              {
+                data: [inStock, lowStock, outOfStock],
+                backgroundColor: ['rgba(59, 130, 246, 0.75)', 'rgba(245, 158, 11, 0.75)', 'rgba(244, 63, 94, 0.75)'],
+                borderColor: ['rgba(59, 130, 246, 1)', 'rgba(245, 158, 11, 1)', 'rgba(244, 63, 94, 1)'],
+                borderWidth: 1,
+                hoverOffset: 6
+              }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 18 } },
+              tooltip: {
+                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                  padding: 12,
+                  cornerRadius: 12,
+                  titleFont: { size: 13, weight: 600 },
+                  bodyFont: { size: 12 },
+                  displayColors: true,
+                  boxPadding: 4,
+                  callbacks: {
+                    label: ctx => {
+                      const raw = ctx.parsed;
+                      const n = Number(raw);
+                      const v = Number.isFinite(n) ? (Number.isInteger(n) ? n : n.toFixed(1)) : raw;
+                      const label = String(ctx.label || '').trim();
+                      return label ? `${label}: ${v}` : String(v);
+                    }
+                  }
+              }
             }
         }
     });
@@ -1238,6 +1358,53 @@ function renderReportsView(query) {
   if (!root) return;
   if (!reportsCache?.loaded) return;
 
+  const initPrintFilters = () => {
+    const s = document.getElementById('reports-print-summary');
+    const l = document.getElementById('reports-print-lowstock');
+    const a = document.getElementById('reports-print-activity');
+    const reset = document.getElementById('reports-print-reset');
+
+    if (s && !s.dataset.bound) {
+      s.dataset.bound = '1';
+      s.addEventListener('change', () => {
+        reportsPrintOptions.summary = s.checked;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+    if (l && !l.dataset.bound) {
+      l.dataset.bound = '1';
+      l.addEventListener('change', () => {
+        reportsPrintOptions.lowStock = l.checked;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+    if (a && !a.dataset.bound) {
+      a.dataset.bound = '1';
+      a.addEventListener('change', () => {
+        reportsPrintOptions.activity = a.checked;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+    if (reset && !reset.dataset.bound) {
+      reset.dataset.bound = '1';
+      reset.addEventListener('click', () => {
+        reportsPrintOptions.summary = true;
+        reportsPrintOptions.lowStock = true;
+        reportsPrintOptions.activity = true;
+        if (s) s.checked = true;
+        if (l) l.checked = true;
+        if (a) a.checked = true;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+
+    if (s) s.checked = reportsPrintOptions.summary;
+    if (l) l.checked = reportsPrintOptions.lowStock;
+    if (a) a.checked = reportsPrintOptions.activity;
+  };
+
+  initPrintFilters();
+
   const toFiniteNumber = value => {
     const cleaned = String(value ?? '').replace(/[^0-9.\-]+/g, '');
     const n = Number(cleaned);
@@ -1305,15 +1472,64 @@ function renderReportsView(query) {
   const outStockEl = document.getElementById('reports-out-stock');
   if (outStockEl) outStockEl.innerText = fmtInt(outStockAll.length);
 
+  const summaryLabel = document.getElementById('reports-summary-label');
+  if (summaryLabel) summaryLabel.classList.toggle('hidden', !reportsPrintOptions.summary);
+
+  const summaryCard = document.getElementById('reports-summary-card');
+  if (summaryCard) summaryCard.classList.toggle('hidden', !reportsPrintOptions.summary);
+
+  const lowCard = document.getElementById('reports-lowstock-card');
+  if (lowCard) lowCard.classList.toggle('hidden', !reportsPrintOptions.lowStock);
+
+  const actCard = document.getElementById('reports-activity-card');
+  if (actCard) actCard.classList.toggle('hidden', !reportsPrintOptions.activity);
+
   const lowCountEl = document.getElementById('reports-lowstock-count');
   if (lowCountEl) lowCountEl.innerText = fmtInt(lowStockFiltered.length);
 
+  const initLowStockPager = () => {
+    const prevBtn = document.getElementById('reports-lowstock-prev-btn');
+    if (prevBtn && !prevBtn.dataset.bound) {
+      prevBtn.dataset.bound = '1';
+      prevBtn.addEventListener('click', () => {
+        if (reportsLowStockPagination.currentPage <= 1) return;
+        reportsLowStockPagination.currentPage -= 1;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+
+    const nextBtn = document.getElementById('reports-lowstock-next-btn');
+    if (nextBtn && !nextBtn.dataset.bound) {
+      nextBtn.dataset.bound = '1';
+      nextBtn.addEventListener('click', () => {
+        reportsLowStockPagination.currentPage += 1;
+        renderReportsView(String(globalSearchState.query || '').trim());
+      });
+    }
+  };
+
+  if (reportsPrintOptions.lowStock) initLowStockPager();
+
   const lowBody = document.getElementById('reports-lowstock-body');
-  if (lowBody) {
-    const shown = lowStockFiltered
+  if (lowBody && reportsPrintOptions.lowStock) {
+    const qKey = q;
+    if (reportsLowStockPagination.lastQuery !== qKey) {
+      reportsLowStockPagination.lastQuery = qKey;
+      reportsLowStockPagination.currentPage = 1;
+    }
+
+    const ordered = lowStockFiltered
       .slice()
-      .sort((a, b) => toFiniteNumber(a.Qty) - toFiniteNumber(b.Qty))
-      .slice(0, 20);
+      .sort((a, b) => toFiniteNumber(a.Qty) - toFiniteNumber(b.Qty));
+
+    const total = ordered.length;
+    const totalPages = Math.ceil(total / reportsLowStockPagination.itemsPerPage) || 1;
+    if (reportsLowStockPagination.currentPage > totalPages) reportsLowStockPagination.currentPage = totalPages;
+    if (reportsLowStockPagination.currentPage < 1) reportsLowStockPagination.currentPage = 1;
+
+    const startIdx = (reportsLowStockPagination.currentPage - 1) * reportsLowStockPagination.itemsPerPage;
+    const endIdx = startIdx + reportsLowStockPagination.itemsPerPage;
+    const shown = ordered.slice(startIdx, endIdx);
 
     lowBody.innerHTML = '';
     if (shown.length === 0) {
@@ -1335,10 +1551,22 @@ function renderReportsView(query) {
         lowBody.appendChild(tr);
       });
     }
+
+    const pageInfo = document.getElementById('reports-lowstock-page-info');
+    if (pageInfo) {
+      const start = total === 0 ? 0 : startIdx + 1;
+      const end = Math.min(endIdx, total);
+      pageInfo.innerText = `Page ${reportsLowStockPagination.currentPage} of ${totalPages} • Showing ${start}-${end} of ${total}`;
+    }
+
+    const prevBtn = document.getElementById('reports-lowstock-prev-btn');
+    if (prevBtn) prevBtn.disabled = reportsLowStockPagination.currentPage <= 1;
+    const nextBtn = document.getElementById('reports-lowstock-next-btn');
+    if (nextBtn) nextBtn.disabled = reportsLowStockPagination.currentPage >= totalPages;
   }
 
   const actList = document.getElementById('reports-activity-list');
-  if (actList) {
+  if (actList && reportsPrintOptions.activity) {
     actList.innerHTML = '';
     if (activitiesFiltered.length === 0) {
       actList.innerHTML = '<li class="py-3 text-sm text-gray-500">No recent activity.</li>';

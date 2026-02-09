@@ -306,6 +306,60 @@ function getDataFromSheet(sheetName) {
   });
 }
 
+function getTransactions_() {
+  const sheet = getSheet('Transactions');
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length === 0) return [];
+
+  const firstRow = values[0].map(v => String(v ?? '').trim());
+  const normalizedHeaders = firstRow.map(h => h.toLowerCase());
+  const expected = ['id', 'timestamp', 'date', 'type', 'itemid', 'item', 'itemname', 'quantity', 'qty', 'user', 'reason'];
+  const looksLikeHeader = normalizedHeaders.some(h => expected.includes(h));
+
+  const rows = looksLikeHeader ? values.slice(1) : values;
+  const tz = Session.getScriptTimeZone();
+
+  if (looksLikeHeader) {
+    const idx = name => normalizedHeaders.indexOf(name);
+    const idIdx = idx('id');
+    const tsIdx = idx('timestamp') > -1 ? idx('timestamp') : idx('date');
+    const typeIdx = idx('type');
+    const itemIdIdx = idx('itemid');
+    const itemNameIdx = idx('itemname') > -1 ? idx('itemname') : idx('item');
+    const qtyIdx = idx('quantity') > -1 ? idx('quantity') : idx('qty');
+    const userIdx = idx('user');
+    const reasonIdx = idx('reason');
+
+    return rows
+      .filter(r => Array.isArray(r) && r.some(v => String(v ?? '').trim() !== ''))
+      .map(r => ({
+        ID: idIdx > -1 ? r[idIdx] : '',
+        Timestamp: tsIdx > -1 ? r[tsIdx] : '',
+        Type: typeIdx > -1 ? r[typeIdx] : '',
+        ItemId: itemIdIdx > -1 ? r[itemIdIdx] : '',
+        ItemName: itemNameIdx > -1 ? r[itemNameIdx] : '',
+        Quantity: qtyIdx > -1 ? r[qtyIdx] : '',
+        User: userIdx > -1 ? r[userIdx] : '',
+        Reason: reasonIdx > -1 ? r[reasonIdx] : '',
+        _tz: tz
+      }));
+  }
+
+  return rows
+    .filter(r => Array.isArray(r) && r.some(v => String(v ?? '').trim() !== ''))
+    .map(r => ({
+      ID: r[0],
+      Timestamp: r[1],
+      Type: r[2],
+      ItemId: r[3],
+      ItemName: r[4],
+      Quantity: r[5],
+      User: r[6],
+      Reason: r[7],
+      _tz: tz
+    }));
+}
+
 function findInventoryRowNumber_(headers, data, idValue) {
   // Check Serial first (most unique)
   const serialIndex = findHeaderIndex_(headers, ['Serial']);
@@ -357,6 +411,55 @@ function getDashboardStats() {
   
   const auditLogs = getAuditLogs();
   const recentActivities = auditLogs.slice(-5).reverse();
+  const transactions = getTransactions_();
+
+  const tz = Session.getScriptTimeZone();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - 6);
+
+  const labels = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    labels.push(Utilities.formatDate(d, tz, 'EEE'));
+  }
+
+  const sales = new Array(7).fill(0);
+  const restocks = new Array(7).fill(0);
+
+  const toNum = v => {
+    const n = Number(String(v ?? '').replace(/[^0-9.\-]+/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const inRangeIndex = dt => {
+    if (!(dt instanceof Date) || isNaN(dt.getTime())) return -1;
+    const copy = new Date(dt);
+    copy.setHours(0, 0, 0, 0);
+    if (copy < start || copy > today) return -1;
+    return Math.floor((copy.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+  };
+
+  transactions.forEach(t => {
+    const dtRaw = t.Timestamp;
+    const dt = dtRaw instanceof Date ? dtRaw : new Date(dtRaw);
+    const idx = inRangeIndex(dt);
+    if (idx < 0 || idx > 6) return;
+
+    const qty = Math.abs(toNum(t.Quantity));
+    if (!qty) return;
+
+    const type = String(t.Type ?? '').toLowerCase();
+    if (type.includes('out')) {
+      sales[idx] += qty;
+    } else if (type.includes('in')) {
+      restocks[idx] += qty;
+    }
+  });
+
+  const trend = sales.map((s, i) => (s + restocks[i]) / 2);
   
   // Calculate Total Value
   const totalValue = inventory.reduce((sum, item) => {
@@ -368,7 +471,8 @@ function getDashboardStats() {
     lowStock,
     outOfStock,
     totalValue,
-    recentActivities
+    recentActivities,
+    weeklyActivity: { labels, sales, restocks, trend }
   };
 }
 

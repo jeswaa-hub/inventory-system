@@ -154,8 +154,8 @@
 
       @media print {
         @page {
-          margin: 1cm;
-          size: auto;
+          margin: 12mm;
+          size: A4 portrait;
         }
 
         #sidebar, header, #mobile-menu-btn, .print\:hidden {
@@ -165,6 +165,20 @@
         .print\:block {
           display: block !important;
         }
+
+        #chat-widget {
+          display: none !important;
+        }
+
+        .printing-reports #section-dashboard,
+        .printing-reports #section-inventory,
+        .printing-reports #section-audit {
+          display: none !important;
+        }
+
+        .printing-reports #section-reports {
+          display: block !important;
+        }
         
         body, html, .flex-1, main {
           height: auto !important;
@@ -172,14 +186,37 @@
           width: 100% !important;
           background-color: white !important;
         }
+
+        html {
+          font-size: 11pt !important;
+        }
+
+        body {
+          color: #111827 !important;
+          -webkit-font-smoothing: antialiased !important;
+          text-rendering: optimizeLegibility !important;
+          font-family: Inter, Roboto, "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        }
         
         main {
           padding: 0 !important;
           margin: 0 !important;
         }
+
+        .printing-reports main {
+          padding-bottom: 2.2cm !important;
+          padding-top: 1.9cm !important;
+        }
         
         .max-w-7xl {
           max-width: none !important;
+          padding: 0 !important;
+        }
+
+        .printing-reports .max-w-7xl {
+          max-width: 190mm !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
           padding: 0 !important;
         }
 
@@ -206,6 +243,10 @@
           color: #4b5563 !important; /* darker gray for print */
         }
 
+        .text-emerald-600, .text-amber-600, .text-rose-600 {
+          color: #111827 !important;
+        }
+
         /* Layout adjustments */
         .grid-cols-1, .sm\:grid-cols-2, .lg\:grid-cols-4 {
           display: grid !important;
@@ -214,19 +255,65 @@
         /* Force single column for main layout sections to avoid squeezing */
         .lg\:grid-cols-2 {
           grid-template-columns: 1fr !important;
-          gap: 2rem !important;
+          gap: 12mm !important;
         }
 
         /* Keep summary cards in a row but ensure they fit */
         #reports-summary-cards {
           display: grid !important;
-          grid-template-columns: repeat(4, 1fr) !important;
-          gap: 1rem !important;
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 6mm !important;
         }
 
         /* Prevent breaking inside important elements */
         .rounded-3xl, .rounded-2xl, tr, li {
           break-inside: avoid;
+        }
+
+        .printing-reports #reports-content {
+          display: block !important;
+        }
+
+        .printing-reports #reports-content .rounded-3xl,
+        .printing-reports #reports-content .rounded-2xl {
+          border-radius: 0 !important;
+        }
+
+        .printing-reports #reports-content .shadow-xl,
+        .printing-reports #reports-content .shadow-lg,
+        .printing-reports #reports-content .shadow-md,
+        .printing-reports #reports-content .shadow-sm,
+        .printing-reports #reports-content .shadow {
+          box-shadow: none !important;
+        }
+
+        .printing-reports #reports-content .ring-1,
+        .printing-reports #reports-content .ring-2,
+        .printing-reports #reports-content .ring {
+          border: 1px solid #d1d5db !important;
+          box-shadow: none !important;
+        }
+
+        .printing-reports #reports-lowstock-card {
+          break-before: page !important;
+        }
+
+        .printing-reports #reports-activity-card {
+          break-before: page !important;
+        }
+
+        #reports-print-header {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: white !important;
+          padding: 0 12mm !important;
+          border-bottom: 1px solid #d1d5db !important;
+        }
+
+        .printing-reports #reports-print-header {
+          display: block !important;
         }
 
         /* Better table styling for print */
@@ -235,15 +322,80 @@
           border-collapse: collapse !important;
         }
 
+        .printing-reports table {
+          font-size: 10.5pt !important;
+          border: 1px solid #d1d5db !important;
+        }
+
+        thead {
+          display: table-header-group !important;
+        }
+
+        .printing-reports #reports-content .whitespace-nowrap {
+          white-space: normal !important;
+        }
+
+        a, a:visited {
+          color: #111827 !important;
+          text-decoration: none !important;
+        }
+
         th, td {
-          padding: 0.5rem !important;
+          padding: 0.4rem 0.5rem !important;
           border-bottom: 1px solid #e5e7eb !important;
+          vertical-align: top !important;
+          word-break: break-word !important;
+        }
+
+        .printing-reports th, .printing-reports td {
+          border-left: 1px solid #e5e7eb !important;
+          border-right: 1px solid #e5e7eb !important;
         }
 
         thead th {
-          background-color: #f9fafb !important;
+          background-color: #f3f4f6 !important;
           color: #111827 !important;
-          font-weight: bold !important;
+          font-weight: 700 !important;
+          border-bottom: 1px solid #d1d5db !important;
+        }
+
+        .printing-reports tbody tr:nth-child(even) td {
+          background-color: #f9fafb !important;
+        }
+
+        .printing-reports #reports-lowstock-card th:nth-child(3),
+        .printing-reports #reports-lowstock-card td:nth-child(3) {
+          text-align: right !important;
+          width: 18mm !important;
+        }
+
+        .printing-reports #reports-lowstock-card th:nth-child(2),
+        .printing-reports #reports-lowstock-card td:nth-child(2) {
+          width: 42mm !important;
+        }
+
+        .printing-reports #reports-lowstock-card th:nth-child(4),
+        .printing-reports #reports-lowstock-card td:nth-child(4) {
+          width: 45mm !important;
+        }
+
+        .printing-reports #reports-lowstock-card td:nth-child(1) {
+          font-weight: 600 !important;
+          color: #111827 !important;
+        }
+
+        #reports-print-footer {
+          position: fixed !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          padding: 0.35cm 1cm !important;
+          border-top: 1px solid #e5e7eb !important;
+          background: white !important;
+        }
+
+        .print-page::after {
+          content: counter(page);
         }
         
         * {
@@ -417,12 +569,6 @@
             </div>
             <button onclick="refreshAllData()" class="p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300 group mr-1" title="Sync Data">
               <i class="fa-solid fa-arrows-rotate text-gray-600 group-hover:rotate-180 transition-transform duration-700"></i>
-            </button>
-            <button class="p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300 relative group">
-              <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-              </svg>
-              <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer">
               <span class="text-sm">A</span>
