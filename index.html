@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="./styles.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <title>Inventory Management System</title>
     <style>
       :root {
@@ -34,6 +35,35 @@
         transform: translateX(4px);
       }
       
+      #sidebar.sidebar-collapsed .sidebar-brand-text,
+      #sidebar.sidebar-collapsed .sidebar-user-text,
+      #sidebar.sidebar-collapsed .nav-label {
+        display: none;
+      }
+
+      #sidebar.sidebar-collapsed nav {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item {
+        justify-content: center;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item:hover {
+        transform: none;
+      }
+
+      #sidebar.sidebar-collapsed .nav-icon {
+        margin-right: 0 !important;
+      }
+
+      #sidebar.sidebar-collapsed .sidebar-header-toggle {
+        justify-content: center;
+      }
+
       .stat-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border: 1px solid #e2e8f0;
@@ -68,6 +98,29 @@
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-6px); }
       }
+
+      .reveal {
+        animation: reveal 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .reveal-delay-1 { animation-delay: 80ms; }
+      .reveal-delay-2 { animation-delay: 140ms; }
+      .reveal-delay-3 { animation-delay: 200ms; }
+      .reveal-delay-4 { animation-delay: 260ms; }
+
+      @keyframes reveal {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .reveal, .animate-float {
+          animation: none !important;
+        }
+        .stat-card:hover, .nav-item:hover, .btn-primary:hover {
+          transform: none !important;
+        }
+      }
       
       .glass-effect {
         background: rgba(255, 255, 255, 0.95);
@@ -98,10 +151,147 @@
         transform: translateX(-100%);
         transition: transform 300ms ease-in-out;
       }
+
+      @media print {
+        @page {
+          margin: 1cm;
+          size: auto;
+        }
+
+        #sidebar, header, #mobile-menu-btn, .print\:hidden {
+          display: none !important;
+        }
+
+        .print\:block {
+          display: block !important;
+        }
+        
+        body, html, .flex-1, main {
+          height: auto !important;
+          overflow: visible !important;
+          width: 100% !important;
+          background-color: white !important;
+        }
+        
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        
+        .max-w-7xl {
+          max-width: none !important;
+          padding: 0 !important;
+        }
+
+        .overflow-hidden {
+          overflow: visible !important;
+        }
+
+        /* Reset styles for print legibility */
+        .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm, .shadow {
+          box-shadow: none !important;
+        }
+
+        .ring-1, .ring-2, .ring {
+          box-shadow: none !important;
+          border: 1px solid #e5e7eb !important;
+        }
+
+        .bg-gray-50, .bg-gray-100, .bg-slate-900 {
+          background-color: white !important;
+        }
+
+        /* Ensure text is dark and readable */
+        .text-gray-500, .text-gray-400 {
+          color: #4b5563 !important; /* darker gray for print */
+        }
+
+        /* Layout adjustments */
+        .grid-cols-1, .sm\:grid-cols-2, .lg\:grid-cols-4 {
+          display: grid !important;
+        }
+
+        /* Force single column for main layout sections to avoid squeezing */
+        .lg\:grid-cols-2 {
+          grid-template-columns: 1fr !important;
+          gap: 2rem !important;
+        }
+
+        /* Keep summary cards in a row but ensure they fit */
+        #reports-summary-cards {
+          display: grid !important;
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 1rem !important;
+        }
+
+        /* Prevent breaking inside important elements */
+        .rounded-3xl, .rounded-2xl, tr, li {
+          break-inside: avoid;
+        }
+
+        /* Better table styling for print */
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+
+        th, td {
+          padding: 0.5rem !important;
+          border-bottom: 1px solid #e5e7eb !important;
+        }
+
+        thead th {
+          background-color: #f9fafb !important;
+          color: #111827 !important;
+          font-weight: bold !important;
+        }
+        
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
     </style>
   </head>
   <body class="bg-gray-100 font-sans h-screen flex overflow-hidden">
-    <div id="global-loading" class="hidden fixed inset-0 z-50">
+    <!-- Security Modal -->
+    <div id="security-modal" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-4">
+      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+        <div class="p-8">
+          <div class="text-center mb-8">
+            <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm ring-1 ring-blue-100">
+              <i class="fa-solid fa-shield-halved text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900">Security Access</h2>
+            <p class="text-gray-500 mt-2 text-sm">System requires authorization to proceed</p>
+          </div>
+          
+          <form id="security-form" onsubmit="handleSecurityCheck(event)">
+            <div class="mb-6">
+              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Access Script</label>
+              <div class="relative">
+                <input type="password" id="security-input" class="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-400" placeholder="Enter access script..." required>
+                <button type="button" onclick="toggleSecurityPassword()" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                  <i class="fa-regular fa-eye" id="security-eye"></i>
+                </button>
+              </div>
+              <p id="security-error" class="mt-2 text-sm text-red-600 hidden flex items-center">
+                <i class="fa-solid fa-circle-exclamation mr-1.5"></i> Invalid access script
+              </p>
+            </div>
+            
+            <button type="submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-600/30 active:scale-[0.98]">
+              Verify & Access System
+            </button>
+          </form>
+        </div>
+        <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
+          <p class="text-xs text-gray-400">Restricted Access • Authorized Personnel Only</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="global-loading" class="hidden fixed inset-0 z-[100]">
       <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
       <div class="absolute inset-0 flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl bg-white/95 shadow-xl border border-white/30 p-6">
@@ -110,8 +300,8 @@
               <div class="h-6 w-6 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
             </div>
             <div class="min-w-0">
-              <div class="text-base font-semibold text-gray-900">Syncing data</div>
-              <div class="text-sm text-gray-600 truncate">Please wait habang kino-collect ang latest records…</div>
+              <div class="text-base font-semibold text-gray-900" id="loading-title">Loading System</div>
+              <div class="text-sm text-gray-600 truncate" id="loading-message">Please wait...</div>
             </div>
           </div>
         </div>
@@ -129,15 +319,23 @@
 
     <!-- Sidebar -->
     <div id="sidebar" class="bg-gradient-to-br from-slate-900 to-blue-900 w-64 shadow-xl flex flex-col h-full flex-shrink-0 z-20 lg:relative fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
-      <div class="p-6 gradient-bg text-white border-b border-blue-600/20">
-        <div class="flex items-center space-x-3">
+      <div class="gradient-bg text-white border-b border-blue-600/20">
+        <div class="sidebar-header-toggle px-4 pt-4 pb-2 flex justify-end">
+          <button id="sidebar-collapse-btn" class="hidden lg:inline-flex p-2 rounded-xl bg-white/10 hover:bg-white/15 ring-1 ring-white/15 transition-all duration-300" type="button" aria-label="Toggle sidebar">
+            <svg id="sidebar-collapse-icon" class="w-5 h-5 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="px-6 pb-5 flex items-center space-x-3 sidebar-brand">
           <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
           </div>
-          <div>
-            <h1 class="text-xl font-bold tracking-wide">Inventory Pro</h1>
+          <div class="sidebar-brand-text">
+            <h1 class="text-xl font-bold tracking-wide">NBP/GovNet Inventory</h1>
             <p class="text-xs text-blue-100/80 mt-1">Management System</p>
           </div>
         </div>
@@ -147,52 +345,42 @@
         <ul class="space-y-2">
           <li>
             <a href="#" onclick="loadSection('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300 active">
-              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
+              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                 </svg>
               </div>
-              <span class="font-medium">Dashboard</span>
-            </a>
-          </li>
-          <li>
-            <a href="#" onclick="loadSection('products')" id="nav-products" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
-              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                </svg>
-              </div>
-              <span class="font-medium">Products</span>
+              <span class="nav-label font-medium">Dashboard</span>
             </a>
           </li>
           <li>
             <a href="#" onclick="loadSection('inventory')" id="nav-inventory" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
-              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
+              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                 </svg>
               </div>
-              <span class="font-medium">Inventory</span>
+              <span class="nav-label font-medium">Inventory</span>
             </a>
           </li>
           <li>
             <a href="#" onclick="loadSection('reports')" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
-              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
+              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
               </div>
-              <span class="font-medium">Reports</span>
+              <span class="nav-label font-medium">Reports</span>
             </a>
           </li>
           <li>
             <a href="#" onclick="loadSection('audit')" id="nav-audit" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
-              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
+              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
-              <span class="font-medium">Audit Logs</span>
+              <span class="nav-label font-medium">Audit Logs</span>
             </a>
           </li>
         </ul>
@@ -203,7 +391,7 @@
           <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
             U
           </div>
-          <div class="ml-3">
+          <div class="ml-3 sidebar-user-text">
             <p class="text-sm font-medium text-gray-700">Admin User</p>
             <p class="text-xs text-gray-500">View Profile</p>
           </div>
@@ -222,11 +410,14 @@
           </div>
           <div class="flex items-center space-x-4">
             <div class="relative">
-              <input type="text" placeholder="Search inventory..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300 w-64">
+              <input id="global-search" type="text" placeholder="Search..." autocomplete="off" class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300 w-64">
               <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </div>
+            <button onclick="refreshAllData()" class="p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300 group mr-1" title="Sync Data">
+              <i class="fa-solid fa-arrows-rotate text-gray-600 group-hover:rotate-180 transition-transform duration-700"></i>
+            </button>
             <button class="p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300 relative group">
               <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -249,9 +440,6 @@
             </div>
           </div>
 
-          <!-- PRODUCTS SECTION -->
-          <div id="section-products" class="hidden"></div>
-
           <!-- INVENTORY SECTION -->
           <div id="section-inventory" class="hidden"></div>
 
@@ -264,13 +452,97 @@
       </main>
     </div>
 
+    <!-- AI Chat Widget -->
+    <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      <!-- Chat Container -->
+      <div id="chat-container" style="height: 500px; max-height: 80vh;" class="hidden w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col mb-4 transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex justify-between items-center text-white shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm">Inventory Assistant</h3>
+              <p class="text-xs text-blue-100 opacity-90">Online</p>
+            </div>
+          </div>
+          <button onclick="toggleChat()" class="p-1 hover:bg-white/20 rounded-lg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Messages -->
+        <div id="chat-messages" style="flex: 1;" class="overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+          <!-- Welcome Message -->
+          <div class="flex items-start gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div class="flex flex-col gap-1 max-w-[85%]">
+              <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 text-sm text-gray-600">
+                Hi! I'm your AI inventory assistant. How can I help you today?
+              </div>
+              <span class="text-[10px] text-gray-400 ml-1">Just now</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white border-t border-gray-100">
+          <form onsubmit="handleChatSubmit(event)" class="flex gap-2 items-end">
+            <textarea id="chat-input" rows="1" placeholder="Type a message..." class="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none overflow-y-auto max-h-32" oninput="autoResizeChatInput(this)" onkeydown="handleChatKeydown(event)"></textarea>
+            <button type="submit" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-0.5">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Toggle Button -->
+      <button onclick="toggleChat()" id="chat-toggle-btn" class="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-xl shadow-blue-600/30 transition-all hover:scale-110 active:scale-95 group">
+        <svg class="w-6 h-6 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+        </svg>
+      </button>
+    </div>
+
     <!-- Main Script Logic -->
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
     <script>
       // Initial Load
       window.onload = function() {
-        loadSection('dashboard');
+        // Only load if authenticated
+        if (sessionStorage.getItem('auth_token')) {
+          loadSection('dashboard');
+        }
       };
+
+      // Inspection Enabled
+      // document.addEventListener('contextmenu', event => event.preventDefault());
+      
+      // document.onkeydown = function(e) {
+      //   // F12
+      //   if(e.keyCode == 123) {
+      //     return false;
+      //   }
+      //   // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+      //   if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) {
+      //     return false;
+      //   }
+      //   // Ctrl+U
+      //   if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+      //     return false;
+      //   }
+      // };
     </script>
   </body>
 </html>

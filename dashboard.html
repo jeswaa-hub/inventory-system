@@ -1,64 +1,168 @@
 <div id="dashboard-content">
-  <!-- Summary Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dt class="text-sm font-medium text-gray-500 truncate">Total Items</dt>
-        <dd class="mt-1 text-3xl font-semibold text-gray-900" id="dash-total-items">Loading...</dd>
-      </div>
+  <div class="relative overflow-hidden rounded-3xl gradient-bg p-6 sm:p-8 shadow-xl ring-1 ring-white/10 reveal">
+    <div class="absolute inset-0 opacity-25">
+      <div class="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-white/20 blur-2xl"></div>
+      <div class="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-white/10 blur-2xl"></div>
     </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dt class="text-sm font-medium text-gray-500 truncate">Low Stock Items</dt>
-        <dd class="mt-1 text-3xl font-semibold text-yellow-600" id="dash-low-stock">Loading...</dd>
+    <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <div class="flex items-center gap-3">
+          <div class="h-11 w-11 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center">
+            <i class="fa-solid fa-gauge-high text-white"></i>
+          </div>
+          <div>
+            <div class="text-white text-xl font-semibold tracking-tight">Dashboard Overview</div>
+            <div class="text-white/80 text-sm">Real-time snapshot of your inventory health</div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dt class="text-sm font-medium text-gray-500 truncate">Out of Stock</dt>
-        <dd class="mt-1 text-3xl font-semibold text-red-600" id="dash-out-stock">Loading...</dd>
-      </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dt class="text-sm font-medium text-gray-500 truncate">Total Value</dt>
-        <dd class="mt-1 text-3xl font-semibold text-green-600" id="dash-total-value">Loading...</dd>
+      <div class="flex items-center gap-2">
+        <div class="glass-effect rounded-2xl px-4 py-2.5 shadow-sm">
+          <div class="text-xs text-gray-500">Last sync</div>
+          <div class="text-sm font-semibold text-gray-900" id="dash-last-sync">—</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Charts & Activities -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    <!-- Main Chart -->
-    <div class="bg-white shadow rounded-lg p-6 lg:col-span-2">
-      <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Sales & Restocks</h3>
-      <div class="relative h-64 w-full">
-        <canvas id="mainChart"></canvas>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+    <div class="stat-card rounded-2xl p-5 reveal reveal-delay-1">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</div>
+          <div class="mt-2 text-3xl font-semibold text-gray-900 tabular-nums" id="dash-total-items">Loading...</div>
+        </div>
+        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+        <span>Inventory records</span>
       </div>
     </div>
-    
-    <!-- Recent Activity -->
-    <div class="bg-white shadow rounded-lg p-6">
-      <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Recent Activities</h3>
-      <ul class="divide-y divide-gray-200" id="recent-activities-list">
-         <li class="py-3">Loading...</li>
-      </ul>
+
+    <div class="stat-card rounded-2xl p-5 reveal reveal-delay-2">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Low Stock</div>
+          <div class="mt-2 text-3xl font-semibold text-amber-600 tabular-nums" id="dash-low-stock">Loading...</div>
+        </div>
+        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+        <span>Needs attention</span>
+      </div>
+    </div>
+
+    <div class="stat-card rounded-2xl p-5 reveal reveal-delay-3">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Out of Stock</div>
+          <div class="mt-2 text-3xl font-semibold text-rose-600 tabular-nums" id="dash-out-stock">Loading...</div>
+        </div>
+        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+        <span>Requires restock</span>
+      </div>
+    </div>
+
+    <div class="stat-card rounded-2xl p-5 reveal reveal-delay-4">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value</div>
+          <div class="mt-2 text-3xl font-semibold text-emerald-600 tabular-nums" id="dash-total-value">Loading...</div>
+        </div>
+        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-coins"></i>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+        <span>Estimated sum</span>
+      </div>
     </div>
   </div>
-  
-   <!-- Notifications -->
-   <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-    <div class="flex">
-      <div class="flex-shrink-0">
-        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-        </svg>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+    <div class="lg:col-span-8">
+      <div class="rounded-3xl bg-white shadow-xl ring-1 ring-gray-200/60 overflow-hidden reveal reveal-delay-2 flex flex-col h-[340px] sm:h-[360px] lg:h-[380px]">
+        <div class="px-6 py-5 bg-gradient-to-r from-slate-900 to-blue-900 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-2xl bg-white/10 flex items-center justify-center ring-1 ring-white/15">
+              <i class="fa-solid fa-chart-column"></i>
+            </div>
+            <div>
+              <div class="font-semibold tracking-tight">Weekly Activity</div>
+              <div class="text-xs text-white/70">Sales vs Restocks (sample data)</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <select id="dash-chart-filter" class="hidden sm:block px-3 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-50 ring-1 ring-white/40 text-xs outline-none">
+              <option value="all">All</option>
+              <option value="sales">Sales</option>
+              <option value="restocks">Restocks</option>
+              <option value="trend">Trend</option>
+            </select>
+            <div class="text-xs text-white/70 hidden sm:block">Updated automatically</div>
+          </div>
+        </div>
+        <div class="p-6 flex-1 min-h-0">
+          <div class="relative h-full w-full">
+            <canvas id="mainChart"></canvas>
+          </div>
+        </div>
       </div>
-      <div class="ml-3">
-        <p class="text-sm text-yellow-700">
-          You have <span class="font-bold" id="dash-notification-count">0</span> items running low on stock.
-        </p>
+    </div>
+
+    <div class="lg:col-span-4 space-y-6">
+      <div class="rounded-3xl bg-white shadow-xl ring-1 ring-gray-200/60 overflow-hidden reveal reveal-delay-3 flex flex-col h-[340px] sm:h-[360px] lg:h-[380px]">
+        <div class="px-6 py-5 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-gray-900">Stock Health</div>
+              <div class="text-xs text-gray-500">In stock / Low / Out</div>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 pb-6 flex-1 min-h-0">
+          <div class="relative h-full w-full">
+            <canvas id="stockChart"></canvas>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div
+    id="low-stock-toast"
+    class="hidden fixed top-20 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm transition-all duration-300 ease-out opacity-0 translate-y-2"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl ring-1 ring-amber-200/70 overflow-hidden">
+      <div class="p-4 flex items-start gap-3">
+        <div class="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-slate-900">Low stock alert</div>
+          <div class="text-sm text-slate-600 mt-0.5">
+            You have <span class="font-semibold text-slate-900" id="dash-notification-count">0</span> items running low on stock.
+          </div>
+        </div>
+      </div>
+      <div class="h-1 w-full bg-gradient-to-r from-amber-400 to-orange-400"></div>
     </div>
   </div>
 </div>

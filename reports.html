@@ -1,19 +1,94 @@
-<div id="reports-content">
-   <div class="bg-white shadow rounded-lg p-6">
-     <h3 class="text-lg font-medium text-gray-900 mb-4">Inventory Reports</h3>
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-       <button class="p-4 border rounded-lg hover:bg-gray-50 flex flex-col items-center">
-         <svg class="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-         <span class="text-sm font-medium text-gray-900">Current Stock Value</span>
-       </button>
-       <button class="p-4 border rounded-lg hover:bg-gray-50 flex flex-col items-center">
-         <svg class="w-8 h-8 text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
-         <span class="text-sm font-medium text-gray-900">Stock Movement</span>
-       </button>
-       <button class="p-4 border rounded-lg hover:bg-gray-50 flex flex-col items-center">
-         <svg class="w-8 h-8 text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-         <span class="text-sm font-medium text-gray-900">Low Stock History</span>
-       </button>
-     </div>
-   </div>
+<div id="reports-content" class="space-y-6">
+  <!-- Print-only Brand Header -->
+  <div class="hidden print:block mb-8 border-b border-gray-200 pb-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">NBP/GovNet Inventory</h1>
+        <p class="text-sm text-gray-500">Inventory Management System</p>
+      </div>
+      <div class="text-right">
+        <div class="text-sm font-medium text-gray-900">Inventory Report</div>
+        <div class="text-xs text-gray-500" id="print-date"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-3xl bg-white shadow-xl ring-1 ring-gray-200/60 overflow-hidden">
+    <div class="px-6 py-5 flex items-center justify-between">
+      <div class="min-w-0">
+        <div class="text-lg font-semibold text-gray-900">Inventory Reports</div>
+        <div class="text-xs text-gray-500">Live snapshot based on current data</div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="text-xs text-gray-500 whitespace-nowrap hidden sm:block print:block">Last sync: <span id="reports-last-sync">—</span></div>
+        <button onclick="window.print()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold hover:bg-indigo-100 ring-1 ring-indigo-200 transition-colors print:hidden">
+          <i class="fa-solid fa-print"></i>
+          <span>Print Report</span>
+        </button>
+      </div>
+    </div>
+    <div class="px-6 pb-6">
+      <div id="reports-summary-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</div>
+          <div class="mt-2 text-2xl font-semibold text-gray-900 tabular-nums" id="reports-total-items">—</div>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Value</div>
+          <div class="mt-2 text-2xl font-semibold text-emerald-600 tabular-nums" id="reports-total-value">—</div>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Low Stock</div>
+          <div class="mt-2 text-2xl font-semibold text-amber-600 tabular-nums" id="reports-low-stock">—</div>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Out of Stock</div>
+          <div class="mt-2 text-2xl font-semibold text-rose-600 tabular-nums" id="reports-out-stock">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="rounded-3xl bg-white shadow-xl ring-1 ring-gray-200/60 overflow-hidden">
+      <div class="px-6 py-5 flex items-center justify-between">
+        <div>
+          <div class="font-semibold text-gray-900">Low Stock Items</div>
+          <div class="text-xs text-gray-500">Items with Qty between 1 and 9</div>
+        </div>
+        <div class="text-xs text-gray-500">Showing <span id="reports-lowstock-count">—</span></div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Item</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Qty</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+            </tr>
+          </thead>
+          <tbody id="reports-lowstock-body" class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" colspan="4">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rounded-3xl bg-white shadow-xl ring-1 ring-gray-200/60 overflow-hidden">
+      <div class="px-6 py-5 flex items-center justify-between">
+        <div>
+          <div class="font-semibold text-gray-900">Recent Stock Movement</div>
+          <div class="text-xs text-gray-500">Latest movements from transactions</div>
+        </div>
+      </div>
+      <div class="px-6 pb-6">
+        <ul class="divide-y divide-gray-100" id="reports-activity-list">
+          <li class="py-3 text-sm text-gray-500">Loading...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>

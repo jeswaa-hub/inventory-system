@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Hash Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden ring-1 ring-gray-200">
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <div class="h-14 w-14 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-key text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Hash Generator</h2>
+                <p class="text-gray-500 mt-2 text-sm">Use this tool when updating the API URL</p>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">New Script ID</label>
+                    <input type="text" id="script-id-input" 
+                           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900 font-mono text-sm" 
+                           placeholder="Paste the part between /s/ and /exec">
+                    <p class="text-xs text-gray-400 mt-2">Example: AKfycb...wmGU</p>
+                </div>
+
+                <button onclick="generateHash()" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                    Generate Security Hash
+                </button>
+
+                <div id="result-area" class="hidden">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Generated Hash</label>
+                    <div class="relative group">
+                        <code id="hash-output" class="block w-full px-4 py-3 bg-slate-900 text-green-400 rounded-xl font-mono text-xs break-all border border-slate-800"></code>
+                        <button onclick="copyHash()" class="absolute right-2 top-2 p-2 text-gray-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 rounded-lg transition-colors">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-indigo-600 mt-3 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Copy this hash and replace <b>ACCESS_HASH</b> in script.js</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function generateHash() {
+            const input = document.getElementById('script-id-input').value.trim();
+            const resultArea = document.getElementById('result-area');
+            const hashOutput = document.getElementById('hash-output');
+
+            if (!input) {
+                alert('Please enter a Script ID');
+                return;
+            }
+
+            const hash = await sha256(input);
+            hashOutput.textContent = hash;
+            resultArea.classList.remove('hidden');
+        }
+
+        function copyHash() {
+            const hash = document.getElementById('hash-output').textContent;
+            navigator.clipboard.writeText(hash);
+            alert('Hash copied to clipboard!');
+        }
+    </script>
+</body>
+</html>

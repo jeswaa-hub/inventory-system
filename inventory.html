@@ -1,25 +1,219 @@
 <div id="inventory-content">
-   <div class="bg-white shadow overflow-hidden rounded-lg">
-     <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
-       <h3 class="text-lg leading-6 font-medium text-gray-900">Stock Levels</h3>
-       <button onclick="loadInventory()" class="text-blue-600 hover:text-blue-900 text-sm font-medium">Refresh</button>
+   <div class="bg-white shadow-lg rounded-2xl overflow-hidden ring-1 ring-gray-200/60">
+      <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gradient-to-r from-blue-700 to-indigo-700">
+       <div class="flex items-center space-x-3">
+         <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20">
+           <i class="fa-solid fa-boxes-stacked text-white text-lg"></i>
+         </div>
+         <div>
+           <h3 class="text-lg leading-6 font-semibold text-white">Inventory Records</h3>
+           <p class="text-xs text-white/80 mt-0.5">View and track items</p>
+         </div>
+       </div>
+        <div class="flex items-center justify-end gap-2 flex-wrap">
+          <select id="inv-filter-stock" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
+            <option value="all">All Stock</option>
+            <option value="in">In Stock</option>
+            <option value="low">Low Stock</option>
+            <option value="out">Out of Stock</option>
+          </select>
+          <select id="inv-filter-status" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
+            <option value="all">All Status</option>
+            <option value="Available">Available</option>
+            <option value="Deployed">Deployed</option>
+            <option value="Unserviceable">Unserviceable</option>
+            <option value="Out of stock">Out of stock</option>
+            <option value="Missing">Missing</option>
+          </select>
+          <select id="inv-filter-category" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
+            <option value="all">All Categories</option>
+          </select>
+
+          <button onclick="openInventoryCreateModal()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white text-indigo-700 text-sm font-semibold hover:bg-indigo-50 ring-1 ring-white/20">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add Item</span>
+          </button>
+          <button onclick="loadInventory()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white/15 text-white text-sm font-medium hover:bg-white/20 ring-1 ring-white/20">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
      </div>
-     <table class="min-w-full divide-y divide-gray-200">
-       <thead class="bg-gray-50">
-         <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand/Model</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Qty</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Adjust Stock</th>
-         </tr>
-       </thead>
-       <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
-         <!-- Data populated by JS -->
-       </tbody>
-     </table>
+     <div class="overflow-x-auto">
+       <table class="min-w-full divide-y divide-gray-200">
+         <thead class="bg-gray-50">
+           <tr>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Project Name</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Item</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand and Model</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Serial</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Qty</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit Cost</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Acquired</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Disposal Countdown</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Procurement</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Person in Charge</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Remarks</th>
+             <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+           </tr>
+         </thead>
+         <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+          <tr>
+            <td colspan="16" class="px-6 py-4 text-center text-sm text-gray-500">
+              <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading inventory data...
+            </td>
+          </tr>
+        </tbody>
+       </table>
+     </div>
+     <div class="px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border-t border-gray-200/70">
+       <div id="inv-page-info" class="text-sm text-gray-600">Page 1 of 1</div>
+       <div class="flex items-center justify-end space-x-2">
+         <button id="inv-prev-btn" class="inline-flex items-center space-x-2 px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+           <i class="fa-solid fa-chevron-left text-xs"></i>
+           <span>Prev</span>
+         </button>
+         <button id="inv-next-btn" class="inline-flex items-center space-x-2 px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+           <span>Next</span>
+           <i class="fa-solid fa-chevron-right text-xs"></i>
+         </button>
+       </div>
+     </div>
    </div>
+</div>
+
+<div id="inventoryItemModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-900/60 transition-opacity" aria-hidden="true" onclick="closeModal('inventoryItemModal')"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="relative z-50 inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full ring-1 ring-gray-200/70">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900" id="inventory-modal-title">Add Item</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('inventoryItemModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <input type="hidden" id="inv-item-id">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Project Name</label>
+            <input type="text" id="inv-project" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Category</label>
+            <input type="text" id="inv-category" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Item</label>
+            <input type="text" id="inv-item" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Brand and Model</label>
+            <input type="text" id="inv-brandmodel" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Serial</label>
+            <input type="text" id="inv-serial" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Qty</label>
+            <input type="number" id="inv-qty" min="0" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Unit</label>
+            <input type="text" id="inv-unit" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Unit Cost</label>
+            <input type="number" id="inv-unitcost" min="0" step="0.01" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Date Acquired (Year)</label>
+            <input type="number" id="inv-dateacquired" min="1900" max="2099" placeholder="YYYY" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Procurement</label>
+            <input type="text" id="inv-procurementproject" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Person in Charge</label>
+            <input type="text" id="inv-personincharge" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Location</label>
+            <input type="text" id="inv-location" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Status</label>
+            <select id="inv-status" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+              <option value="Available">Available</option>
+              <option value="Deployed">Deployed</option>
+              <option value="Unserviceable">Unserviceable</option>
+              <option value="Out of stock">Out of stock</option>
+              <option value="Missing">Missing</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 lg:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Remarks</label>
+            <input type="text" id="inv-remarks" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <button type="button" onclick="submitInventoryItem()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">
+          <span class="inline-flex items-center space-x-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span id="inventory-save-btn-label">Save</span>
+          </span>
+        </button>
+        <button type="button" onclick="closeModal('inventoryItemModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="inventoryDeleteModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-900/60 transition-opacity" aria-hidden="true" onclick="closeModal('inventoryDeleteModal')"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="relative z-50 inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ring-1 ring-gray-200/70">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900">Confirm Deletion</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('inventoryDeleteModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <input type="hidden" id="inv-delete-id">
+        <div class="mt-4 space-y-3">
+          <p class="text-sm text-gray-700">
+            You are about to delete:
+            <span id="inv-delete-name" class="font-semibold text-gray-900"></span>
+          </p>
+          <p class="text-sm text-gray-600">Type <span class="font-semibold">DELETE</span> to confirm.</p>
+          <input id="inv-delete-confirm" type="text" oninput="inventoryDeleteValidationChanged()" class="w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-red-500/30 focus:border-red-500" placeholder="DELETE">
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <button id="inventory-delete-confirm-btn" type="button" onclick="confirmInventoryDelete()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-semibold text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm" disabled>
+          <span class="inline-flex items-center space-x-2">
+            <i class="fa-solid fa-trash"></i>
+            <span>Delete</span>
+          </span>
+        </button>
+        <button type="button" onclick="closeModal('inventoryDeleteModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Adjust Stock Modal -->
@@ -54,47 +248,3 @@
     </div>
   </div>
 </div>
-
-<script>
-function loadInventory() {
-  google.script.run.withSuccessHandler(renderInventory).getInventory();
-}
-
-function renderInventory(items) {
-  const tbody = document.getElementById('inventory-table-body');
-  tbody.innerHTML = '';
-  items.forEach(item => {
-     const tr = document.createElement('tr');
-     tr.innerHTML = `
-       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.Item}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.BrandModel || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${item.Qty}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Unit || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Status}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-         <button onclick="openAdjustStockModal('${item.ID}', '${item.Item}')" class="text-indigo-600 hover:text-indigo-900">Adjust</button>
-       </td>
-     `;
-     tbody.appendChild(tr);
-  });
-}
-
-function openAdjustStockModal(id, name) {
-  document.getElementById('adjust-item-id').value = id;
-  document.getElementById('adjust-item-name').innerText = name;
-  document.getElementById('adjust-amount').value = '';
-  document.getElementById('adjust-reason').value = '';
-  openModal('adjustStockModal');
-}
-
-function submitStockAdjustment() {
-  const id = document.getElementById('adjust-item-id').value;
-  const amount = document.getElementById('adjust-amount').value;
-  const reason = document.getElementById('adjust-reason').value;
-  
-  google.script.run.withSuccessHandler(() => {
-    closeModal('adjustStockModal');
-    loadInventory();
-  }).adjustStock(id, amount, reason);
-}
-</script>

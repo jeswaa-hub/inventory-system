@@ -1,0 +1,25 @@
+{
+  "name": "inventory_system",
+  "version": "1.0.0",
+  "description": "This is a simple inventory system that uses Google Sheets as a database and Google Apps Script for the backend. The frontend is built with HTML and Tailwind CSS.",
+  "main": "Code.js",
+  "scripts": {
+    "build": "tailwindcss -i ./src/input.css -o ./styles.css --minify",
+    "watch": "tailwindcss -i ./src/input.css -o ./styles.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeswaa-hub/inventory-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jeswaa-hub/inventory-system/issues"
+  },
+  "homepage": "https://github.com/jeswaa-hub/inventory-system#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}
