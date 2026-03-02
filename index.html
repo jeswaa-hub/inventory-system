@@ -19,20 +19,64 @@
         --light: #f8fafc;
       }
       
-      .nav-item.active {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      }
-      
       .nav-item {
+        position: relative;
         transition: all 0.3s ease;
-        border-left: 3px solid transparent;
+        border-top-left-radius: 30px;
+        border-bottom-left-radius: 30px;
+        margin-right: 0;
       }
       
-      .nav-item:hover {
-        border-left-color: var(--secondary);
-        transform: translateX(4px);
+      .nav-item.active {
+        background-color: #f9fafb; /* bg-gray-50 */
+        color: #1e293b; /* text-slate-800 */
+        box-shadow: none;
+      }
+
+      .nav-item.active .nav-icon {
+        background-color: #eff6ff; /* bg-blue-50 */
+        color: #2563eb; /* text-blue-600 */
+      }
+      
+      .nav-item.active .nav-label {
+        color: #1e293b;
+        font-weight: 600;
+      }
+
+      /* Inverted Border Radius - Top Curve */
+      .nav-item.active::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        background-color: transparent;
+        border-radius: 50%;
+        box-shadow: 20px 20px 0 0 #f9fafb;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* Inverted Border Radius - Bottom Curve */
+      .nav-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: -40px;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        background-color: transparent;
+        border-radius: 50%;
+        box-shadow: 20px -20px 0 0 #f9fafb;
+        pointer-events: none;
+        z-index: 10;
+      }
+      
+      .nav-item:hover:not(.active) {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-top-left-radius: 30px;
+        border-bottom-left-radius: 30px;
       }
       
       #sidebar.sidebar-collapsed .sidebar-brand-text,
@@ -62,6 +106,36 @@
 
       #sidebar.sidebar-collapsed .sidebar-header-toggle {
         justify-content: center;
+      }
+      
+      /* Fix for collapsed sidebar active item */
+      #sidebar.sidebar-collapsed .nav-item {
+        border-radius: 12px !important;
+        margin: 0 !important;
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem !important;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item.active {
+        background-color: rgba(59, 130, 246, 0.15); /* Light blue bg */
+        box-shadow: none;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item.active .nav-icon {
+        background: none;
+        color: #60a5fa;
+        box-shadow: none;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item.active::before,
+      #sidebar.sidebar-collapsed .nav-item.active::after {
+        display: none !important;
+      }
+
+      #sidebar.sidebar-collapsed .nav-item:hover:not(.active) {
+        transform: none;
+        background-color: rgba(255, 255, 255, 0.05);
       }
 
       .stat-card {
@@ -113,12 +187,51 @@
         to { opacity: 1; transform: translateY(0); }
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        .reveal, .animate-float {
-          animation: none !important;
+      /* Mobile Responsive Fixes */
+      @media (max-width: 1024px) {
+        #sidebar {
+          position: fixed;
+          z-index: 50;
+          height: 100vh;
         }
-        .stat-card:hover, .nav-item:hover, .btn-primary:hover {
-          transform: none !important;
+        
+        /* Ensure overlay when sidebar is open */
+        #sidebar:not(.-translate-x-full)::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: -1;
+          width: 100vw;
+          height: 100vh;
+          left: 256px; /* sidebar width */
+        }
+      }
+
+      @media (max-width: 640px) {
+        .stat-card {
+          padding: 1rem;
+        }
+        
+        .stat-card .text-3xl {
+          font-size: 1.5rem;
+        }
+        
+        /* Better table scrolling on mobile */
+        .overflow-x-auto {
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 1px; /* Fix scrollbar clipping */
+        }
+        
+        /* Adjust chat widget position */
+        #chat-widget {
+          bottom: 1rem;
+          right: 1rem;
+        }
+        
+        #chat-container {
+          width: calc(100vw - 2rem);
+          max-height: 60vh;
         }
       }
       
@@ -128,11 +241,11 @@
         border: 1px solid rgba(255, 255, 255, 0.2);
       }
       
-      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; }
       ::-webkit-scrollbar-thumb { 
         background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 4px; 
+        border-radius: 10px; 
       }
       ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
       
@@ -470,33 +583,33 @@
     </div>
 
     <!-- Sidebar -->
-    <div id="sidebar" class="bg-gradient-to-br from-slate-900 to-blue-900 w-64 shadow-xl flex flex-col h-full flex-shrink-0 z-20 lg:relative fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
-      <div class="gradient-bg text-white border-b border-blue-600/20">
+    <div id="sidebar" class="bg-slate-900 w-64 shadow-xl flex flex-col h-full flex-shrink-0 z-20 lg:relative fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+      <div class="text-white border-b border-blue-500">
         <div class="sidebar-header-toggle px-4 pt-4 pb-2 flex justify-end">
-          <button id="sidebar-collapse-btn" class="hidden lg:inline-flex p-2 rounded-xl bg-white/10 hover:bg-white/15 ring-1 ring-white/15 transition-all duration-300" type="button" aria-label="Toggle sidebar">
-            <svg id="sidebar-collapse-icon" class="w-5 h-5 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button id="sidebar-collapse-btn" class="hidden lg:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300" type="button" aria-label="Toggle sidebar">
+            <svg id="sidebar-collapse-icon" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
         </div>
 
         <div class="px-6 pb-5 flex items-center space-x-3 sidebar-brand">
-          <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
           </div>
           <div class="sidebar-brand-text">
-            <h1 class="text-xl font-bold tracking-wide">NBP/GovNet Inventory</h1>
-            <p class="text-xs text-blue-100/80 mt-1">Management System</p>
+            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-0.5">NBP/GovNet</div>
+            <h1 class="text-xl font-extrabold text-white tracking-tight leading-none">Inventory</h1>
           </div>
         </div>
       </div>
       
-      <nav class="flex-1 overflow-y-auto py-6 px-4">
-        <ul class="space-y-2">
+      <nav class="flex-1 overflow-y-auto py-6 pl-4 pr-0">
+        <ul class="space-y-4">
           <li>
-            <a href="#" onclick="loadSection('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300 active">
+            <a href="#" onclick="loadSection('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300 active">
               <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
@@ -506,7 +619,7 @@
             </a>
           </li>
           <li>
-            <a href="#" onclick="loadSection('inventory')" id="nav-inventory" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
+            <a href="#" onclick="loadSection('inventory')" id="nav-inventory" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300">
               <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -516,7 +629,7 @@
             </a>
           </li>
           <li>
-            <a href="#" onclick="loadSection('reports')" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
+            <a href="#" onclick="loadSection('reports')" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300">
               <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -525,30 +638,8 @@
               <span class="nav-label font-medium">Reports</span>
             </a>
           </li>
-          <li>
-            <a href="#" onclick="loadSection('audit')" id="nav-audit" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white rounded-lg transition-all duration-300">
-              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <span class="nav-label font-medium">Audit Logs</span>
-            </a>
-          </li>
         </ul>
       </nav>
-      
-      <div class="p-4 border-t border-gray-200">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-            U
-          </div>
-          <div class="ml-3 sidebar-user-text">
-            <p class="text-sm font-medium text-gray-700">Admin User</p>
-            <p class="text-xs text-gray-500">View Profile</p>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Main Content -->
@@ -646,7 +737,7 @@
             <textarea id="chat-input" rows="1" placeholder="Type a message..." class="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none overflow-y-auto max-h-32" oninput="autoResizeChatInput(this)" onkeydown="handleChatKeydown(event)"></textarea>
             <button type="submit" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-0.5">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path>
               </svg>
             </button>
           </form>

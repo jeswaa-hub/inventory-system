@@ -150,12 +150,15 @@
     role="status"
     aria-live="polite"
   >
-    <div class="rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl ring-1 ring-amber-200/70 overflow-hidden">
+    <div class="rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl ring-1 ring-amber-200/70 overflow-hidden relative">
+      <button onclick="dismissLowStockToast()" class="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
       <div class="p-4 flex items-start gap-3">
-        <div class="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+        <div class="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
           <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
-        <div class="min-w-0">
+        <div class="min-w-0 pr-6">
           <div class="text-sm font-semibold text-slate-900">Low stock alert</div>
           <div class="text-sm text-slate-600 mt-0.5">
             You have <span class="font-semibold text-slate-900" id="dash-notification-count">0</span> items running low on stock.

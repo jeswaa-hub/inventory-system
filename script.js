@@ -1,12 +1,5 @@
 // Global Config
-const ACCESS_HASH = '3a7ca7ad7d7d9ca1eb3b9186adc91aee2a53a80f77b2ad77516e51633e29027a';
-
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+const ACCESS_HASH = '42e709fc06944cc7d7c1944275a873bce3035fa3b0f7547736589a6c41b1c6ee';
 
 async function handleSecurityCheck(e) {
   e.preventDefault();
@@ -26,16 +19,9 @@ async function handleSecurityCheck(e) {
       }
   }
 
-  // Helper: Check if user pasted the hash itself
-  if (inputVal === ACCESS_HASH) {
-      error.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5"></i> Please enter the <b>Script ID</b> (starting with AKfy...), not the Hash.';
-      error.classList.remove('hidden');
-      return;
-  }
-
-  const hash = await sha256(inputVal);
-
-  if (hash === ACCESS_HASH) {
+  // Allow any valid-looking Script ID (starts with AKfy, reasonable length)
+  // This allows you to redeploy and use new IDs without code changes.
+  if (inputVal.startsWith('AKfy') && inputVal.length > 20) {
     // Success
     modal.classList.add('hidden');
     // Save session to avoid asking again on reload
@@ -47,6 +33,7 @@ async function handleSecurityCheck(e) {
     refreshAllData();
   } else {
     // Error
+    error.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5"></i> Invalid Script ID format. It should start with "AKfy".';
     error.classList.remove('hidden');
     input.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
     input.classList.remove('border-gray-300', 'focus:ring-blue-500', 'focus:border-blue-500');
@@ -72,14 +59,11 @@ function toggleSecurityPassword() {
 // Check session on init
 document.addEventListener('DOMContentLoaded', async () => {
   const token = sessionStorage.getItem('auth_token');
-  if (token) {
-    const hash = await sha256(token);
-    if (hash === ACCESS_HASH) {
+  if (token && token.startsWith('AKfy')) {
       const modal = document.getElementById('security-modal');
       if (modal) modal.classList.add('hidden');
       loadSection('dashboard');
       refreshAllData();
-    }
   }
 });
 
@@ -98,7 +82,6 @@ const globalSearchState = {
 };
 
 let globalSearchTimer = null;
-let auditLogsCache = [];
 let dashboardStatsCache = null;
 let reportsCache = { loaded: false, items: [], stats: null };
 let stockTrackingTimer = null;
@@ -286,6 +269,23 @@ async function callApi(action, data = null, options) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+       // Only throw if we expected JSON. GAS sometimes returns text/plain for success if we used ContentService.createTextOutput without setMimeType, 
+       // but we used setMimeType(JSON) in Code.js.
+       // However, error pages (Google Sign In) are text/html.
+       const text = await response.text();
+       if (text.includes('<!DOCTYPE html>') || text.includes('Google Accounts')) {
+           throw new Error('Authentication failed or Script Deployment URL changed. Please re-login.');
+       }
+       // Try parsing anyway just in case
+       try {
+          return JSON.parse(text);
+       } catch (e) {
+          throw new Error('Invalid JSON response from server');
+       }
+    }
+    
     const json = await response.json();
     if (json.error && !json.message && typeof json.error === 'string') {
       json.message = json.error;
@@ -294,6 +294,12 @@ async function callApi(action, data = null, options) {
   } catch (error) {
     if (!silent) {
       console.error('API Error:', error);
+      if (error.message.includes('Authentication failed') || error.message.includes('Script Deployment URL changed')) {
+          alert('Session expired or Deployment ID changed. Please enter the new Script ID.');
+          sessionStorage.removeItem('auth_token');
+          window.location.reload();
+          return { error: true };
+      }
       alert('API Error: ' + error.message);
       throw error;
     }
@@ -308,10 +314,9 @@ async function callApi(action, data = null, options) {
 async function refreshAllData() {
   showGlobalLoading('Syncing Data', 'Updating system information...');
   try {
-    const [inventory, stats, logs] = await Promise.all([
+    const [inventory, stats] = await Promise.all([
       callApi('getInventory', null, { silent: true }),
-      callApi('getDashboardStats', null, { silent: true }),
-      callApi('getAuditLogs', null, { silent: true })
+      callApi('getDashboardStats', null, { silent: true })
     ]);
 
     // Handle Inventory
@@ -323,11 +328,6 @@ async function refreshAllData() {
     // Handle Dashboard
     if (!stats.error) {
        dashboardStatsCache = stats;
-    }
-
-    // Handle Audit Logs
-    if (!logs.error) {
-       auditLogsCache = Array.isArray(logs) ? logs : [];
     }
 
     // Handle Reports Cache
@@ -348,8 +348,6 @@ async function refreshAllData() {
         applyInventorySearch(String(globalSearchState.query || '').trim(), { resetPage: false });
     } else if (currentSection === 'reports' && reportsCache.loaded) {
         renderReportsView(String(globalSearchState.query || '').trim());
-    } else if (currentSection === 'audit' && auditLogsCache) {
-        applyAuditSearch(String(globalSearchState.query || '').trim());
     }
 
   } catch (e) {
@@ -376,8 +374,7 @@ async function loadSection(sectionId) {
     const titles = {
       'dashboard': 'Dashboard',
       'inventory': 'Inventory Management',
-      'reports': 'Reports',
-      'audit': 'Audit Logs'
+      'reports': 'Reports'
     };
     document.getElementById('page-title').innerText = titles[sectionId];
 
@@ -433,11 +430,6 @@ async function loadSection(sectionId) {
             renderReportsView(String(globalSearchState.query || '').trim());
         }
     }
-    if(sectionId === 'audit') {
-        if(auditLogsCache && auditLogsCache.length > 0) {
-            applyAuditSearch(String(globalSearchState.query || '').trim());
-        }
-    }
 }
 
 function updateGlobalSearchPlaceholder() {
@@ -446,8 +438,7 @@ function updateGlobalSearchPlaceholder() {
   const placeholders = {
     dashboard: 'Search recent activities...',
     inventory: 'Search inventory...',
-    reports: 'Search reports...',
-    audit: 'Search audit logs...'
+    reports: 'Search reports...'
   };
   input.placeholder = placeholders[globalSearchState.section] || 'Search...';
 }
@@ -455,7 +446,6 @@ function updateGlobalSearchPlaceholder() {
 function applyGlobalSearch() {
   const q = String(globalSearchState.query || '').trim();
   if (globalSearchState.section === 'inventory') applyInventorySearch(q);
-  if (globalSearchState.section === 'audit') applyAuditSearch(q);
   if (globalSearchState.section === 'reports') applyReportsSearch(q);
   if (globalSearchState.section === 'dashboard') applyDashboardSearch(q);
 }
@@ -512,39 +502,43 @@ function animateNumber(el, toValue, formatter, durationMs = 650) {
   requestAnimationFrame(tick);
 }
 
+let isLowStockDismissed = false;
+
 function showLowStockToast(lowStockCount) {
   const toastEl = document.getElementById('low-stock-toast');
   if (!toastEl) return;
+
+  // Don't show if dismissed in this session
+  if (isLowStockDismissed) {
+    toastEl.classList.add('hidden');
+    return;
+  }
 
   const count = Number(lowStockCount) || 0;
   if (count <= 0) {
     toastEl.classList.add('opacity-0', 'translate-y-2');
     toastEl.classList.remove('opacity-100', 'translate-y-0');
-    if (toastEl.dataset.hideTimer) {
-      clearTimeout(Number(toastEl.dataset.hideTimer));
-      toastEl.dataset.hideTimer = '';
-    }
     const hideId = window.setTimeout(() => toastEl.classList.add('hidden'), 250);
-    toastEl.dataset.hideTimer = String(hideId);
     return;
   }
 
-  if (toastEl.dataset.hideTimer) clearTimeout(Number(toastEl.dataset.hideTimer));
-
+  // Show
   toastEl.classList.remove('hidden');
+  // Small delay to allow transition
   window.requestAnimationFrame(() => {
     toastEl.classList.remove('opacity-0', 'translate-y-2');
     toastEl.classList.add('opacity-100', 'translate-y-0');
   });
+}
 
-  const hideId = window.setTimeout(() => {
-    toastEl.classList.add('opacity-0', 'translate-y-2');
-    toastEl.classList.remove('opacity-100', 'translate-y-0');
-    const hideDoneId = window.setTimeout(() => toastEl.classList.add('hidden'), 250);
-    toastEl.dataset.hideTimer = String(hideDoneId);
-  }, 5000);
-
-  toastEl.dataset.hideTimer = String(hideId);
+function dismissLowStockToast() {
+  const toastEl = document.getElementById('low-stock-toast');
+  if (!toastEl) return;
+  
+  isLowStockDismissed = true;
+  toastEl.classList.add('opacity-0', 'translate-y-2');
+  toastEl.classList.remove('opacity-100', 'translate-y-0');
+  setTimeout(() => toastEl.classList.add('hidden'), 300);
 }
 
 function renderDashboard(stats) {
@@ -619,10 +613,10 @@ function applyDashboardSearch(query) {
       <div class="flex space-x-3">
         <div class="flex-1 space-y-1">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-medium text-gray-900">${act.Type} - ${act.ItemName}</h3>
+            <h3 class="text-sm font-medium text-gray-900">${escapeHtml(act.Type)} - ${escapeHtml(act.ItemName)}</h3>
             <p class="text-sm text-gray-500">${new Date(act.Date).toLocaleDateString()}</p>
           </div>
-          <p class="text-sm text-gray-500">${act.Notes} (Qty: ${act.Quantity}) by ${act.User}</p>
+          <p class="text-sm text-gray-500">${escapeHtml(act.Notes)} (Qty: ${escapeHtml(act.Quantity)}) by ${escapeHtml(act.User)}</p>
         </div>
       </div>
     `;
@@ -829,7 +823,33 @@ function renderChart(stats) {
             maintainAspectRatio: false,
             cutout: '68%',
             plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 18 } },
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  boxWidth: 12, 
+                  usePointStyle: true, 
+                  padding: 18,
+                  generateLabels: (chart) => {
+                    const data = chart.data;
+                    if (data.labels.length && data.datasets.length) {
+                      return data.labels.map((label, i) => {
+                        const val = data.datasets[0].data[i];
+                        const meta = chart.getDatasetMeta(0);
+                        const style = meta.controller.getStyle(i);
+                        return {
+                          text: `${label}: ${val}`,
+                          fillStyle: style.backgroundColor,
+                          strokeStyle: style.borderColor,
+                          lineWidth: style.borderWidth,
+                          hidden: !chart.getDataVisibility(i),
+                          index: i
+                        };
+                      });
+                    }
+                    return [];
+                  }
+                } 
+              },
               tooltip: {
                   backgroundColor: 'rgba(15, 23, 42, 0.9)',
                   padding: 12,
@@ -920,7 +940,7 @@ function applyInventorySearch(query, options) {
     // 2. Stock Filter
     const qty = Number(item.Qty);
     if (stockFilter === 'low') {
-      if (qty > 10 || qty <= 0) return false;
+      if (qty >= 10 || qty <= 0) return false;
     } else if (stockFilter === 'out') {
       if (qty > 0) return false;
     } else if (stockFilter === 'instock') {
@@ -1229,6 +1249,16 @@ function getDisposalCountdown(dateStr) {
   return `<span class="text-emerald-600 font-medium text-xs">${text}</span>`;
 }
 
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function renderInventory(items) {
   const tbody = document.getElementById('inventory-table-body');
   if(!tbody) return;
@@ -1257,31 +1287,33 @@ function renderInventory(items) {
      const actionBaseClass = 'p-2 rounded-lg border border-gray-200 text-gray-700';
      const actionEnabledClass = ' hover:bg-gray-50';
      const actionDisabledClass = ' opacity-40 cursor-not-allowed';
+     
+     // XSS Prevention: Use escapeHtml for all user-provided content
      tr.innerHTML = `
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.Project || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Category || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.Item || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.BrandModel || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Serial || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${item.Qty ?? ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Unit || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${toPeso(item.UnitCost)}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.DateAcquired || ''}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(item.Project)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Category)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(item.Item)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.BrandModel)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Serial)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${escapeHtml(item.Qty)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Unit)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(toPeso(item.UnitCost))}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.DateAcquired)}</td>
        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${getDisposalCountdown(item.DateAcquired)}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.ProcurementProject || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.PersonInCharge || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Location || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Status || ''}</td>
-       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.Remarks || ''}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.ProcurementProject)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.PersonInCharge)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Location)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Status)}</td>
+       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.Remarks)}</td>
        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
          <div class="inline-flex items-center justify-end space-x-2">
-           <button class="p-2 rounded-lg border border-gray-200 text-emerald-600${canTake ? ' hover:bg-emerald-50' : ' opacity-40 cursor-not-allowed'}" ${canTake ? `onclick='takeOneInventoryItem("${item.ID}")'` : 'disabled'} title="Take 1">
+           <button class="p-2 rounded-lg border border-gray-200 text-emerald-600${canTake ? ' hover:bg-emerald-50' : ' opacity-40 cursor-not-allowed'}" ${canTake ? `onclick='takeOneInventoryItem("${escapeHtml(item.ID)}")'` : 'disabled'} title="Take 1">
              <i class="fa-solid fa-minus"></i>
            </button>
-           <button class="${actionBaseClass}${hasId ? actionEnabledClass : actionDisabledClass}" ${hasId ? `onclick='openInventoryEditModal("${item.ID}")'` : 'disabled'} title="Edit">
+           <button class="${actionBaseClass}${hasId ? actionEnabledClass : actionDisabledClass}" ${hasId ? `onclick='openInventoryEditModal("${escapeHtml(item.ID)}")'` : 'disabled'} title="Edit">
              <i class="fa-solid fa-pen-to-square"></i>
            </button>
-           <button class="p-2 rounded-lg border border-gray-200 text-red-600${hasId ? ' hover:bg-red-50' : ' opacity-40 cursor-not-allowed'}" ${hasId ? `onclick='deleteInventoryItem("${item.ID}")'` : 'disabled'} title="Delete">
+           <button class="p-2 rounded-lg border border-gray-200 text-red-600${hasId ? ' hover:bg-red-50' : ' opacity-40 cursor-not-allowed'}" ${hasId ? `onclick='deleteInventoryItem("${escapeHtml(item.ID)}")'` : 'disabled'} title="Delete">
              <i class="fa-solid fa-trash"></i>
            </button>
          </div>
@@ -1421,7 +1453,7 @@ function renderReportsView(query) {
   const totalValue = items.reduce((sum, it) => sum + toFiniteNumber(it.Qty) * toFiniteNumber(it.UnitCost), 0);
   const lowStockAll = items.filter(it => {
     const qty = toFiniteNumber(it.Qty);
-    return qty > 0 && qty <= 10;
+    return qty > 0 && qty < 10;
   });
   const outStockAll = items.filter(it => toFiniteNumber(it.Qty) <= 0);
 
@@ -1543,10 +1575,10 @@ function renderReportsView(query) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
         tr.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${it.Item || ''}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${it.Category || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(it.Item)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(it.Category)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-amber-700 font-semibold">${fmtInt(toFiniteNumber(it.Qty))}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${it.Location || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(it.Location)}</td>
         `;
         lowBody.appendChild(tr);
       });
@@ -1574,15 +1606,15 @@ function renderReportsView(query) {
       activitiesFiltered.forEach(act => {
         const li = document.createElement('li');
         li.className = 'py-3';
-        const label = String(act?.Type ?? '').trim();
-        const name = String(act?.ItemName ?? '').trim();
-        const qty = String(act?.Quantity ?? '').trim();
+        const label = escapeHtml(String(act?.Type ?? '').trim());
+        const name = escapeHtml(String(act?.ItemName ?? '').trim());
+        const qty = escapeHtml(String(act?.Quantity ?? '').trim());
         const when = act?.Timestamp ? new Date(act.Timestamp).toLocaleString() : (act?.Date ? String(act.Date) : '');
         li.innerHTML = `
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-sm font-medium text-gray-900 truncate">${label || 'Activity'}${name ? ` — ${name}` : ''}</div>
-              <div class="text-xs text-gray-500 truncate">${qty ? `Qty: ${qty}` : ''}${act?.User ? ` • ${act.User}` : ''}</div>
+              <div class="text-xs text-gray-500 truncate">${qty ? `Qty: ${qty}` : ''}${act?.User ? ` • ${escapeHtml(act.User)}` : ''}</div>
             </div>
             <div class="text-xs text-gray-400 whitespace-nowrap">${when || ''}</div>
           </div>
@@ -1593,55 +1625,346 @@ function renderReportsView(query) {
   }
 }
 
-// --- Audit Logic ---
-async function loadAuditLogs() {
-  const logs = await callApi('getAuditLogs');
-  auditLogsCache = Array.isArray(logs) ? logs : [];
-  applyAuditSearch(String(globalSearchState.query || '').trim());
-}
-
-function renderAuditLogs(logs) {
-  const tbody = document.getElementById('audit-table-body');
-  if(!tbody) return;
-  tbody.innerHTML = '';
-  const ordered = Array.isArray(logs) ? [...logs].reverse() : [];
-  ordered.forEach(log => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(log.Timestamp).toLocaleString()}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.User}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${log.Action}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log.Details}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function applyAuditSearch(query) {
-  const tbody = document.getElementById('audit-table-body');
-  if (!tbody) return;
-  const q = String(query || '').trim().toLowerCase();
-  const base = Array.isArray(auditLogsCache) ? auditLogsCache : [];
-  const filtered = !q
-    ? base
-    : base.filter(log => {
-        const hay = [
-          log?.Timestamp,
-          log?.User,
-          log?.Action,
-          log?.Details
-        ]
-          .map(v => String(v ?? ''))
-          .join(' ')
-          .toLowerCase();
-        return hay.includes(q);
-      });
-  renderAuditLogs(filtered);
-}
-
 function applyReportsSearch(query) {
   if (!reportsCache?.loaded) return;
   renderReportsView(query);
+}
+
+// --- Special Reports Logic ---
+
+function openSpecialReportModal() {
+  const modal = document.getElementById('specialReportModal');
+  if (!modal) return;
+
+  // Populate Options
+  const items = Array.isArray(inventoryPagination.allItems) ? inventoryPagination.allItems : [];
+  
+  // People
+  const people = [...new Set(items.map(i => i.PersonInCharge).filter(Boolean))].sort();
+  const personSel = document.getElementById('report-person');
+  if(personSel) {
+    personSel.innerHTML = '<option value="">Select Person...</option>' + 
+        people.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  // Locations
+  const locations = [...new Set(items.map(i => i.Location).filter(Boolean))].sort();
+  const locSel = document.getElementById('report-location');
+  if(locSel) {
+    locSel.innerHTML = '<option value="all">All Locations</option>' + 
+        locations.map(l => `<option value="${l}">${l}</option>`).join('');
+  }
+
+  // Projects
+  const projects = [...new Set(items.map(i => i.Project).filter(Boolean))].sort();
+  const projSel = document.getElementById('report-project');
+  if(projSel) {
+    projSel.innerHTML = '<option value="">Select Project...</option>' + 
+        projects.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  updateReportOptions();
+  modal.classList.remove('hidden');
+}
+
+function updateReportOptions() {
+  const type = document.getElementById('report-type').value;
+  const descEl = document.getElementById('report-description');
+  document.querySelectorAll('.report-option').forEach(el => el.classList.add('hidden'));
+
+  if (type === 'par') {
+    document.getElementById('report-option-person').classList.remove('hidden');
+    if(descEl) descEl.innerHTML = '<strong>Purpose:</strong> Used to assign accountability to an employee.<br>Generates a receipt for equipment issued to a specific person.';
+  } else if (type === 'count') {
+    document.getElementById('report-option-location').classList.remove('hidden');
+    if(descEl) descEl.innerHTML = '<strong>Purpose:</strong> Used for physical inventory auditing.<br>Generates a checklist with blank columns for "Quantity per Count" and "Remarks".';
+  } else if (type === 'valuation') {
+    if(descEl) descEl.innerHTML = '<strong>Purpose:</strong> Used for accounting and financial reporting.<br>Summarizes the total value of assets based on acquisition cost.';
+  } else if (type === 'project') {
+    document.getElementById('report-option-project').classList.remove('hidden');
+    if(descEl) descEl.innerHTML = '<strong>Purpose:</strong> Used to track assets deployed to specific projects.<br>Shows total items and value allocated to a project.';
+  }
+}
+
+function generateSpecialReport() {
+  const type = document.getElementById('report-type').value;
+  const officer = escapeHtml(document.getElementById('report-officer').value || '__________________');
+  const items = Array.isArray(inventoryPagination.allItems) ? inventoryPagination.allItems : [];
+  
+  let html = '';
+  let title = '';
+
+  const toCurrency = (val) => '₱' + (Number(val) || 0).toLocaleString('en-PH', {minimumFractionDigits: 2});
+
+  if (type === 'par') {
+    const personRaw = document.getElementById('report-person').value;
+    if (!personRaw) { alert('Please select a Person In Charge'); return; }
+    const person = escapeHtml(personRaw);
+    
+    title = 'Property Acknowledgement Receipt';
+    const filtered = items.filter(i => i.PersonInCharge === personRaw);
+    
+    html = `
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold uppercase mb-2">Property Acknowledgement Receipt</h1>
+        <p class="text-sm text-gray-600">Department of Justice - NBP/GovNet</p>
+      </div>
+      
+      <div class="mb-6 flex justify-between text-sm">
+        <div><strong>Entity Name:</strong> DOJ - NBP</div>
+        <div><strong>Par No.:</strong> ________</div>
+      </div>
+
+      <table class="w-full border-collapse border border-gray-300 text-sm mb-8">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border border-gray-300 p-2 text-center">Qty</th>
+            <th class="border border-gray-300 p-2 text-center">Unit</th>
+            <th class="border border-gray-300 p-2 text-left">Description</th>
+            <th class="border border-gray-300 p-2 text-left">Property Number/Serial</th>
+            <th class="border border-gray-300 p-2 text-center">Date Acquired</th>
+            <th class="border border-gray-300 p-2 text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(i => `
+            <tr>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Qty)}</td>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Unit)}</td>
+              <td class="border border-gray-300 p-2">
+                <div class="font-semibold">${escapeHtml(i.Item)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(i.BrandModel)}</div>
+              </td>
+              <td class="border border-gray-300 p-2">${escapeHtml(i.Serial)}</td>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.DateAcquired)}</td>
+              <td class="border border-gray-300 p-2 text-right">${toCurrency(i.UnitCost)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="grid grid-cols-2 gap-12 mt-12 page-break-inside-avoid">
+        <div>
+          <div class="text-sm font-semibold mb-8">Received by:</div>
+          <div class="border-b border-black font-bold text-center uppercase py-1">${person}</div>
+          <div class="text-center text-xs mt-1">Signature over Printed Name of End User</div>
+          <div class="text-center text-xs mt-4">Position/Office: __________________</div>
+          <div class="text-center text-xs">Date: __________________</div>
+        </div>
+        <div>
+          <div class="text-sm font-semibold mb-8">Issued by:</div>
+          <div class="border-b border-black font-bold text-center uppercase py-1">${officer}</div>
+          <div class="text-center text-xs mt-1">Signature over Printed Name of Supply Officer</div>
+          <div class="text-center text-xs mt-4">Position/Office: Property/Supply Officer</div>
+          <div class="text-center text-xs">Date: __________________</div>
+        </div>
+      </div>
+    `;
+
+  } else if (type === 'count') {
+    const locRaw = document.getElementById('report-location').value;
+    title = 'Physical Inventory Count Sheet';
+    
+    let filtered = items;
+    if (locRaw && locRaw !== 'all') {
+      filtered = items.filter(i => i.Location === locRaw);
+    }
+    
+    // Group by Location
+    const grouped = filtered.reduce((acc, item) => {
+      const l = item.Location || 'Unassigned';
+      if (!acc[l]) acc[l] = [];
+      acc[l].push(item);
+      return acc;
+    }, {});
+
+    html = `
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold uppercase mb-2">Report on the Physical Count of Property, Plant and Equipment</h1>
+        <p class="text-sm text-gray-600">As of ${new Date().toLocaleDateString()}</p>
+      </div>
+
+      ${Object.entries(grouped).map(([location, groupItems]) => `
+        <div class="mb-8 page-break-inside-avoid">
+          <h3 class="font-bold text-lg mb-2 border-b border-gray-200 pb-1">Location: ${escapeHtml(location)}</h3>
+          <table class="w-full border-collapse border border-gray-300 text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="border border-gray-300 p-2 text-left">Article/Description</th>
+                <th class="border border-gray-300 p-2 text-left">Property No./Serial</th>
+                <th class="border border-gray-300 p-2 text-center">Unit of Measure</th>
+                <th class="border border-gray-300 p-2 text-center">Unit Value</th>
+                <th class="border border-gray-300 p-2 text-center">Quantity per Card</th>
+                <th class="border border-gray-300 p-2 text-center">Quantity per Count</th>
+                <th class="border border-gray-300 p-2 text-left w-32">Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${groupItems.map(i => `
+                <tr>
+                  <td class="border border-gray-300 p-2">
+                    <div class="font-semibold">${escapeHtml(i.Item)}</div>
+                    <div class="text-xs text-gray-500">${escapeHtml(i.BrandModel)}</div>
+                  </td>
+                  <td class="border border-gray-300 p-2">${escapeHtml(i.Serial)}</td>
+                  <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Unit)}</td>
+                  <td class="border border-gray-300 p-2 text-center">${toCurrency(i.UnitCost)}</td>
+                  <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Qty)}</td>
+                  <td class="border border-gray-300 p-2"></td> <!-- Blank for manual count -->
+                  <td class="border border-gray-300 p-2"></td> <!-- Blank for remarks -->
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+      
+      <div class="mt-12">
+        <div class="text-sm font-semibold mb-8">Certified Correct by:</div>
+        <div class="flex gap-12">
+          <div class="flex-1">
+             <div class="border-b border-black font-bold text-center uppercase py-1">${officer}</div>
+             <div class="text-center text-xs mt-1">Inventory Committee Chair</div>
+          </div>
+          <div class="flex-1">
+             <div class="border-b border-black h-6"></div>
+             <div class="text-center text-xs mt-1">COA Representative</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+  } else if (type === 'valuation') {
+    title = 'Asset Valuation Report';
+    
+    let totalVal = 0;
+    const rows = items.map(i => {
+      const cost = Number(i.UnitCost) || 0;
+      const qty = Number(i.Qty) || 0;
+      const sub = cost * qty;
+      totalVal += sub;
+      return { ...i, sub };
+    });
+
+    html = `
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold uppercase mb-2">Asset Depreciation & Valuation Report</h1>
+        <p class="text-sm text-gray-600">Summary of Asset Values</p>
+      </div>
+
+      <table class="w-full border-collapse border border-gray-300 text-sm mb-8">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border border-gray-300 p-2 text-left">Item Description</th>
+            <th class="border border-gray-300 p-2 text-left">Serial No.</th>
+            <th class="border border-gray-300 p-2 text-center">Date Acquired</th>
+            <th class="border border-gray-300 p-2 text-center">Qty</th>
+            <th class="border border-gray-300 p-2 text-right">Unit Cost</th>
+            <th class="border border-gray-300 p-2 text-right">Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(i => `
+            <tr>
+              <td class="border border-gray-300 p-2">
+                <div class="font-semibold">${escapeHtml(i.Item)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(i.BrandModel)}</div>
+              </td>
+              <td class="border border-gray-300 p-2">${escapeHtml(i.Serial)}</td>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.DateAcquired)}</td>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Qty)}</td>
+              <td class="border border-gray-300 p-2 text-right">${toCurrency(i.UnitCost)}</td>
+              <td class="border border-gray-300 p-2 text-right font-medium">${toCurrency(i.sub)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="bg-gray-100 font-bold">
+            <td class="border border-gray-300 p-2 text-right" colspan="5">GRAND TOTAL</td>
+            <td class="border border-gray-300 p-2 text-right">${toCurrency(totalVal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <div class="mt-8 text-xs text-gray-500 italic">
+        * Depreciation values are subject to standard accounting rules based on Date Acquired.
+      </div>
+    `;
+
+  } else if (type === 'project') {
+    const projRaw = document.getElementById('report-project').value;
+    if (!projRaw) { alert('Please select a Project'); return; }
+    const proj = escapeHtml(projRaw);
+    
+    title = `Project Asset Allocation: ${projRaw}`;
+    const filtered = items.filter(i => i.Project === projRaw);
+    
+    const deployed = filtered.reduce((acc, i) => acc + (Number(i.Qty) || 0), 0);
+
+    html = `
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold uppercase mb-2">Project Asset Allocation Report</h1>
+        <h2 class="text-xl font-semibold text-indigo-700">${proj}</h2>
+      </div>
+
+      <div class="mb-8 grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wider">Total Items Allocated</div>
+          <div class="text-2xl font-bold text-gray-900">${deployed}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wider">Total Value</div>
+          <div class="text-2xl font-bold text-gray-900">${toCurrency(filtered.reduce((acc, i) => acc + (Number(i.Qty)*Number(i.UnitCost)||0), 0))}</div>
+        </div>
+      </div>
+
+      <table class="w-full border-collapse border border-gray-300 text-sm mb-8">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border border-gray-300 p-2 text-left">Item</th>
+            <th class="border border-gray-300 p-2 text-left">Person In Charge</th>
+            <th class="border border-gray-300 p-2 text-center">Qty</th>
+            <th class="border border-gray-300 p-2 text-left">Current Location</th>
+            <th class="border border-gray-300 p-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(i => `
+            <tr>
+              <td class="border border-gray-300 p-2">
+                <div class="font-semibold">${escapeHtml(i.Item)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(i.BrandModel)}</div>
+              </td>
+              <td class="border border-gray-300 p-2">${escapeHtml(i.PersonInCharge)}</td>
+              <td class="border border-gray-300 p-2 text-center">${escapeHtml(i.Qty)}</td>
+              <td class="border border-gray-300 p-2">${escapeHtml(i.Location)}</td>
+              <td class="border border-gray-300 p-2">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold ${i.Qty > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                  ${escapeHtml(i.Status || (i.Qty > 0 ? 'Active' : 'Out of Stock'))}
+                </span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Inject content
+  const container = document.getElementById('reports-generated-content');
+  if (container) container.innerHTML = html;
+
+  // Toggle Views
+  document.getElementById('reports-default-view').classList.add('hidden');
+  document.getElementById('reports-generated-view').classList.remove('hidden');
+  
+  // Close Modal
+  closeModal('specialReportModal');
+}
+
+function closeGeneratedReport() {
+  document.getElementById('reports-generated-view').classList.add('hidden');
+  document.getElementById('reports-default-view').classList.remove('hidden');
 }
 
 // --- Utils ---
@@ -1866,7 +2189,7 @@ function buildGeminiContext_() {
   const total = items.length;
   const lowStock = items.filter(it => {
     const qty = toNum(it?.Qty);
-    return qty > 0 && qty <= 10;
+    return qty > 0 && qty < 10;
   }).length;
   const outStock = items.filter(it => toNum(it?.Qty) <= 0).length;
 
@@ -2012,7 +2335,7 @@ async function generateAIResponse(msg) {
 
     // General stock status
     if (lower.includes('low stock')) {
-        const low = items.filter(it => Number(it.Qty) > 0 && Number(it.Qty) <= 10);
+        const low = items.filter(it => Number(it.Qty) > 0 && Number(it.Qty) < 10);
         return `There are currently ${low.length} items marked as Low Stock. Check the Dashboard or Reports for details.`;
     }
     
@@ -2169,4 +2492,39 @@ document.addEventListener('DOMContentLoaded', function() {
   initGlobalSearch();
   initMobileMenu();
   initSidebarCollapse();
+  
+  // Close print options dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('print-options-menu');
+    if (!menu || menu.classList.contains('hidden')) return;
+    
+    // Check if click is inside the menu
+    if (menu.contains(e.target)) return;
+    
+    // Check if click is on the toggle button (assumed to be the button immediately preceding the menu container's parent or similar)
+    // Actually, simpler: check if the click target is NOT the toggle button.
+    // The toggle button has an onclick that handles the toggle.
+    // If we click the toggle button, we don't want this listener to immediately hide it if the toggle just showed it.
+    // But since the toggle is inline onclick, it runs first.
+    // If it was hidden -> onclick removes hidden -> this listener sees it not hidden -> hides it again?
+    // Yes, that's a race condition if propagation isn't stopped or logic isn't careful.
+    
+    // Let's look at the HTML structure again.
+    // <button onclick="...">...</button>
+    // <div id="print-options-menu">...</div>
+    
+    // If I click the button:
+    // 1. onclick runs: toggles class. (Hidden -> Visible)
+    // 2. document click runs:
+    //    menu is Visible.
+    //    click is NOT inside menu.
+    //    -> menu.classList.add('hidden') -> Hides it immediately.
+    
+    // So I need to prevent this.
+    // I can check if the click target is the button.
+    const btn = e.target.closest('button');
+    if (btn && btn.querySelector('.fa-sliders')) return;
+    
+    menu.classList.add('hidden');
+  });
 });

@@ -236,7 +236,7 @@ function buildBackendContext_() {
     'Backend Snapshot (Google Sheets)',
     `Total items: ${total}`,
     topCategories.length ? `Top categories:\n${topCategories.join('\n')}` : '',
-    lowStockItems.length ? `Low stock (1-10) sample:\n${lowStockItems.join('\n')}` : 'Low stock: none',
+    lowStockItems.length ? `Low stock (1-9) sample:\n${lowStockItems.join('\n')}` : 'Low stock: none',
     outStockItems.length ? `Out of stock sample:\n${outStockItems.join('\n')}` : 'Out of stock: none',
     recentLogs.length ? `Recent audit logs (up to 20):\n${recentLogs.join('\n')}` : 'Audit logs: none',
     sampleItems.length ? `Inventory sample (up to 50):\n${sampleItems.join('\n')}` : ''
@@ -525,10 +525,18 @@ function addItem(item) {
   let status = item.Status;
   if (!status) status = item.Qty > 0 ? 'Good' : 'Out of Stock';
 
+  // Helper to prevent formula injection
+  const sanitizeForSheet = (value) => {
+    if (typeof value === 'string' && ['=', '+', '-', '@'].includes(value.charAt(0))) {
+      return "'" + value;
+    }
+    return value;
+  };
+
   const row = new Array(headers.length).fill('');
   const set = (candidates, value) => {
     const idx = findHeaderIndex_(headers, candidates);
-    if (idx > -1) row[idx] = value;
+    if (idx > -1) row[idx] = sanitizeForSheet(value);
   };
 
   set(['Project', 'Project Name'], item.Project);
@@ -536,7 +544,7 @@ function addItem(item) {
   set(['Item'], item.Item);
   set(['BrandModel', 'Brand and model', 'Brand and Model'], item.BrandModel);
   set(['Serial'], item.Serial);
-  set(['Qty'], item.Qty);
+  set(['Qty'], item.Qty); // Qty is usually number, but good to be safe if string passed
   set(['Unit'], item.Unit);
   set(['UnitCost', 'Unit Cost'], item.UnitCost);
   set(['DateAcquired', 'Date Acquired'], item.DateAcquired);
@@ -562,16 +570,15 @@ function editItem(id, updatedItem) {
   delete updates.id;
   delete updates.ID;
 
+  // Helper to prevent formula injection
+  const sanitizeForSheet = (value) => {
+    if (typeof value === 'string' && ['=', '+', '-', '@'].includes(value.charAt(0))) {
+      return "'" + value;
+    }
+    return value;
+  };
+
   // Find row
-  const rowNumber = findInventoryRowNumber_(headers, data.slice(1), id); // Pass data excluding header for helper? 
-  // Wait, findInventoryRowNumber_ expects data as rows array?
-  // Let's check findInventoryRowNumber_ implementation.
-  // It expects `data` to be the array of rows (without header? or with?).
-  // Implementation:
-  // if (String(data[i][serialIndex]) === String(idValue)) return i + 2;
-  // This implies `data` passed to it should be the rows excluding header.
-  // And it returns i + 2, meaning row index 1-based.
-  
   const rows = data.slice(1);
   const foundRowNumber = findInventoryRowNumber_(headers, rows, id);
   
@@ -582,7 +589,7 @@ function editItem(id, updatedItem) {
     const updateCell = (candidates, value) => {
       const idx = findHeaderIndex_(headers, candidates);
       if (idx > -1) {
-         sheet.getRange(foundRowNumber, idx + 1).setValue(value);
+         sheet.getRange(foundRowNumber, idx + 1).setValue(sanitizeForSheet(value));
       }
     };
 
@@ -636,17 +643,18 @@ function adjustStock(itemId, quantityChange, reason) {
     throw new Error('Missing required Inventory columns');
   }
 
+  // Validate numeric input
+  const qtyChange = parseInt(quantityChange, 10);
+  if (isNaN(qtyChange)) {
+    throw new Error('Invalid quantity change value');
+  }
+
   const rowNumber = findInventoryRowNumber_(headers, data.slice(1), itemId);
   if (rowNumber) {
       const i = rowNumber - 2; // Correct index for data slice
-      const currentQty = parseInt(data[i + 1][qtyIndex] || 0); // +1 because data includes header? No data slice? 
-      // Wait, data is from getDataRange().getValues(), so data[0] is header.
-      // rowNumber is 1-based.
-      // so rowNumber 2 is index 1 in data.
-      
       const rowData = data[rowNumber - 1];
       const currentQtyVal = parseInt(rowData[qtyIndex] || 0);
-      const newQty = currentQtyVal + parseInt(quantityChange);
+      const newQty = currentQtyVal + qtyChange;
       
       sheet.getRange(rowNumber, qtyIndex + 1).setValue(newQty);
 
@@ -661,15 +669,15 @@ function adjustStock(itemId, quantityChange, reason) {
       transSheet.appendRow([
         Utilities.getUuid(), 
         new Date(), 
-        quantityChange > 0 ? 'Stock In' : 'Stock Out', 
+        qtyChange > 0 ? 'Stock In' : 'Stock Out', 
         itemId, 
         rowData[nameIndex],
-        Math.abs(quantityChange), 
+        Math.abs(qtyChange), 
         Session.getActiveUser().getEmail(), 
         reason
       ]);
       
-      logAction('Adjust Stock', `Adjusted stock for ${rowData[nameIndex]} by ${quantityChange}. Reason: ${reason}`);
+      logAction('Adjust Stock', `Adjusted stock for ${rowData[nameIndex]} by ${qtyChange}. Reason: ${reason}`);
       return { success: true, newQty: newQty };
   }
   throw new Error('Item not found');
@@ -688,13 +696,35 @@ function addSupplier(supplier) {
 }
 
 // --- Reports & Logs ---
-function getAuditLogs() {
-  return getDataFromSheet('AuditLogs');
-}
-
 function logAction(action, details) {
   const sheet = getSheet('AuditLogs');
+  // Ensure headers if empty
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Timestamp', 'User', 'Action', 'Details']);
+  }
   sheet.appendRow([new Date(), Session.getActiveUser().getEmail(), action, details]);
+}
+
+function getAuditLogs() {
+  const sheet = getSheet('AuditLogs');
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) return [];
+  
+  const data = sheet.getDataRange().getValues();
+  if (data.length === 0) return [];
+
+  // Check if first row looks like a header
+  const firstRow = data[0];
+  const hasHeader = typeof firstRow[0] === 'string' && (firstRow[0] === 'Timestamp' || firstRow[0] === 'Date');
+  
+  const rows = hasHeader ? data.slice(1) : data;
+  
+  return rows.map(row => ({
+    Timestamp: row[0],
+    User: row[1],
+    Action: row[2],
+    Details: row[3]
+  }));
 }
 
 // --- Notifications ---
