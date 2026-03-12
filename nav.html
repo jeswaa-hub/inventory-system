@@ -1,0 +1,56 @@
+<div class="text-white border-b border-blue-500">
+  <div class="sidebar-header-toggle px-4 pt-4 pb-2 flex justify-end group-[.collapsed]/sidebar:justify-center">
+    <button id="sidebar-collapse-btn" class="hidden lg:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300" type="button" aria-label="Toggle sidebar">
+      <svg id="sidebar-collapse-icon" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="px-6 pb-5 flex items-center space-x-3 sidebar-brand">
+      <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20 shadow-inner print:shadow-none print:ring-0 print:border-gray-200 print:border">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+      </svg>
+    </div>
+    <div class="sidebar-brand-text group-[.collapsed]/sidebar:hidden">
+      <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-0.5">NBP/GovNet</div>
+      <h1 class="text-xl font-extrabold text-white tracking-tight leading-none">Inventory</h1>
+    </div>
+  </div>
+</div>
+
+<nav class="flex-1 overflow-y-auto py-6 pl-4 pr-0 group-[.collapsed]/sidebar:px-3">
+  <ul class="space-y-4">
+    <li>
+      <a href="#dashboard" onclick="loadSection('dashboard'); return false;" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300 group relative rounded-tl-[30px] rounded-bl-[30px] mr-0 active:bg-gray-50 active:text-slate-800 active:shadow-none hover:bg-white/5 group-[.collapsed]/sidebar:rounded-xl group-[.collapsed]/sidebar:m-0 group-[.collapsed]/sidebar:w-full group-[.collapsed]/sidebar:active:bg-blue-600/15 group-[.collapsed]/sidebar:active:shadow-none group-[.collapsed]/sidebar:active:before:hidden group-[.collapsed]/sidebar:active:after:hidden group-[.collapsed]/sidebar:hover:transform-none group-[.collapsed]/sidebar:hover:bg-white/5 print:text-blue-600 print:no-underline">
+          <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm group-[.active]:bg-blue-50 group-[.active]:text-blue-600 group-[.collapsed]/sidebar:mr-0 group-[.collapsed]/sidebar:active:bg-transparent group-[.collapsed]/sidebar:active:text-blue-400 group-[.collapsed]/sidebar:active:shadow-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+        </div>
+        <span class="nav-label font-medium group-[.active]:font-semibold group-[.collapsed]/sidebar:hidden">Dashboard</span>
+      </a>
+    </li>
+    <li>
+      <a href="#inventory" onclick="loadSection('inventory');" id="nav-inventory" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300 group relative rounded-tl-[30px] rounded-bl-[30px] mr-0 active:bg-gray-50 active:text-slate-800 active:shadow-none hover:bg-white/5 group-[.collapsed]/sidebar:rounded-xl group-[.collapsed]/sidebar:m-0 group-[.collapsed]/sidebar:w-full group-[.collapsed]/sidebar:active:bg-blue-600/15 group-[.collapsed]/sidebar:active:shadow-none group-[.collapsed]/sidebar:active:before:hidden group-[.collapsed]/sidebar:active:after:hidden group-[.collapsed]/sidebar:hover:transform-none group-[.collapsed]/sidebar:hover:bg-white/5 print:text-blue-600 print:no-underline">
+        <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm group-[.active]:bg-blue-50 group-[.active]:text-blue-600 group-[.collapsed]/sidebar:mr-0 group-[.collapsed]/sidebar:active:bg-transparent group-[.collapsed]/sidebar:active:text-blue-400 group-[.collapsed]/sidebar:active:shadow-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+          </svg>
+        </div>
+        <span class="nav-label font-medium group-[.active]:font-semibold group-[.collapsed]/sidebar:hidden">Inventory</span>
+      </a>
+    </li>
+    <li>
+      <a href="#reports" onclick="loadSection('reports'); return false;" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300 group relative rounded-tl-[30px] rounded-bl-[30px] mr-0 active:bg-gray-50 active:text-slate-800 active:shadow-none hover:bg-white/5 group-[.collapsed]/sidebar:rounded-xl group-[.collapsed]/sidebar:m-0 group-[.collapsed]/sidebar:w-full group-[.collapsed]/sidebar:active:bg-blue-600/15 group-[.collapsed]/sidebar:active:shadow-none group-[.collapsed]/sidebar:active:before:hidden group-[.collapsed]/sidebar:active:after:hidden group-[.collapsed]/sidebar:hover:transform-none group-[.collapsed]/sidebar:hover:bg-white/5 print:text-blue-600 print:no-underline">
+        <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm group-[.active]:bg-blue-50 group-[.active]:text-blue-600 group-[.collapsed]/sidebar:mr-0 group-[.collapsed]/sidebar:active:bg-transparent group-[.collapsed]/sidebar:active:text-blue-400 group-[.collapsed]/sidebar:active:shadow-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <span class="nav-label font-medium group-[.active]:font-semibold group-[.collapsed]/sidebar:hidden">Reports</span>
+      </a>
+    </li>
+  </ul>
+</nav>

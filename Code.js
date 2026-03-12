@@ -1,3 +1,232 @@
+// --- Global Cache ---
+const CACHE = {
+  ss: null,
+  config: null,
+  configTimestamp: 0
+};
+
+// --- Configuration Service ---
+function getSystemConfig() {
+  const now = Date.now();
+  // Cache config for 5 minutes to reduce PropertiesService calls
+  if (CACHE.config && (now - CACHE.configTimestamp) < 300000) {
+    return CACHE.config;
+  }
+  
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const config = {
+      // API Configuration
+      scriptId: props.getProperty('SCRIPT_ID') || '',
+      apiBaseUrl: props.getProperty('API_BASE_URL') || '',
+      
+      // Database Configuration
+      inventorySheetName: props.getProperty('INVENTORY_SHEET_NAME') || 'Inventory',
+      auditSheetName: props.getProperty('AUDIT_SHEET_NAME') || 'AuditLogs',
+      suppliersSheetName: props.getProperty('SUPPLIERS_SHEET_NAME') || 'Suppliers',
+      
+      // Authentication
+      securityScript: props.getProperty('SECURITY_SCRIPT') || '',
+      authToken: props.getProperty('AUTH_TOKEN') || '',
+      
+      // External Services
+      geminiApiKey: props.getProperty('GEMINI_API_KEY') || '',
+      webhookUrl: props.getProperty('WEBHOOK_URL') || '',
+      
+      // System Settings
+      batchSize: parseInt(props.getProperty('BATCH_SIZE') || '20'),
+      cacheTimeout: parseInt(props.getProperty('CACHE_TIMEOUT') || '300000'),
+      enableLogging: props.getProperty('ENABLE_LOGGING') === 'true',
+      enableCaching: props.getProperty('ENABLE_CACHING') !== 'false',
+      
+      // Feature Flags
+      enableChat: props.getProperty('ENABLE_CHAT') === 'true',
+      enableReports: props.getProperty('ENABLE_REPORTS') !== 'false',
+      enableAudit: props.getProperty('ENABLE_AUDIT') !== 'false',
+      
+      // UI Configuration
+      appName: props.getProperty('APP_NAME') || 'Inventory Management System',
+      appVersion: props.getProperty('APP_VERSION') || '1.0.0',
+      companyName: props.getProperty('COMPANY_NAME') || 'NBP/GovNet',
+      
+      // Data Validation
+      requiredFields: (props.getProperty('REQUIRED_FIELDS') || 'ID,Item,Qty,Status').split(',').map(f => f.trim()),
+      uniqueFields: (props.getProperty('UNIQUE_FIELDS') || 'ID').split(',').map(f => f.trim()),
+      
+      // External API Endpoints
+      externalApis: {
+        inventory: props.getProperty('EXTERNAL_INVENTORY_API') || '',
+        suppliers: props.getProperty('EXTERNAL_SUPPLIERS_API') || '',
+        reports: props.getProperty('EXTERNAL_REPORTS_API') || ''
+      }
+    };
+    
+    CACHE.config = config;
+    CACHE.configTimestamp = now;
+    return config;
+  } catch (error) {
+    console.error('Error loading system config:', error);
+    return getDefaultConfig();
+  }
+}
+
+function getDefaultConfig() {
+  return {
+    scriptId: '',
+    apiBaseUrl: '',
+    inventorySheetName: 'Inventory',
+    auditSheetName: 'AuditLogs',
+    suppliersSheetName: 'Suppliers',
+    securityScript: '',
+    authToken: '',
+    geminiApiKey: '',
+    webhookUrl: '',
+    batchSize: 20,
+    cacheTimeout: 300000,
+    enableLogging: true,
+    enableCaching: true,
+    enableChat: false,
+    enableReports: true,
+    enableAudit: true,
+    appName: 'Inventory Management System',
+    appVersion: '1.0.0',
+    companyName: 'NBP/GovNet',
+    requiredFields: ['ID', 'Item', 'Qty', 'Status'],
+    uniqueFields: ['ID'],
+    externalApis: {
+      inventory: '',
+      suppliers: '',
+      reports: ''
+    }
+  };
+}
+
+function updateSystemConfig(updates) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const config = getSystemConfig();
+    
+    Object.keys(updates).forEach(key => {
+      if (key in config) {
+        props.setProperty(key.toUpperCase(), String(updates[key]));
+      }
+    });
+    
+    // Clear cache to force reload
+    CACHE.config = null;
+    CACHE.configTimestamp = 0;
+    
+    return { success: true, message: 'Configuration updated successfully' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// --- Logging Service ---
+function logAction(action, details, level = 'info') {
+  const config = getSystemConfig();
+  if (!config.enableLogging) return;
+  
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    action,
+    details,
+    level,
+    user: Session.getActiveUser().getEmail() || 'anonymous'
+  };
+  
+  try {
+    const sheet = getSheet(config.auditSheetName);
+    sheet.appendRow([timestamp, action, details, level, logEntry.user]);
+  } catch (error) {
+    console.error('Failed to log action:', error);
+  }
+}
+
+// --- Data Access Layer ---
+function getDataSource(source) {
+  const config = getSystemConfig();
+  
+  switch (source) {
+    case 'inventory':
+      return config.externalApis.inventory || 'internal';
+    case 'suppliers':
+      return config.externalApis.suppliers || 'internal';
+    case 'reports':
+      return config.externalApis.reports || 'internal';
+    default:
+      return 'internal';
+  }
+}
+
+function fetchExternalData(apiUrl, options = {}) {
+  try {
+    const response = UrlFetchApp.fetch(apiUrl, {
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      muteHttpExceptions: true
+    });
+    
+    const code = response.getResponseCode();
+    const text = response.getContentText();
+    
+    if (code < 200 || code >= 300) {
+      throw new Error(`External API error (${code}): ${text}`);
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return { success: true, data: text };
+    }
+  } catch (error) {
+    logAction('External API Error', `${apiUrl}: ${error.message}`, 'error');
+    throw error;
+  }
+}
+
+// --- Cache Management ---
+const DATA_CACHE = {};
+
+function getCachedData(key) {
+  const config = getSystemConfig();
+  if (!config.enableCaching) return null;
+  
+  const cached = DATA_CACHE[key];
+  if (cached && (Date.now() - cached.timestamp) < config.cacheTimeout) {
+    logAction('Cache Hit', key, 'debug');
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedData(key, data) {
+  const config = getSystemConfig();
+  if (!config.enableCaching) return;
+  
+  DATA_CACHE[key] = {
+    data: data,
+    timestamp: Date.now()
+  };
+  logAction('Cache Set', key, 'debug');
+}
+
+function clearCache(key) {
+  if (key) {
+    delete DATA_CACHE[key];
+    logAction('Cache Cleared', key, 'debug');
+  } else {
+    Object.keys(DATA_CACHE).forEach(k => delete DATA_CACHE[k]);
+    logAction('Cache Cleared', 'all', 'debug');
+  }
+}
+
+function getActiveSpreadsheet() {
+  if (!CACHE.ss) CACHE.ss = SpreadsheetApp.getActiveSpreadsheet();
+  return CACHE.ss;
+}
+
 // --- API Configuration ---
 function doGet(e) {
   const action = e && e.parameter ? e.parameter.action : null;
@@ -7,14 +236,62 @@ function doGet(e) {
   try {
     if (action === 'getDashboardStats') {
       result = getDashboardStats();
+    } else if (action === 'getStats') {
+      result = getDashboardStats();
     } else if (action === 'getInventory') {
       result = getInventory();
+    } else if (action === 'getAllItems') {
+      result = getInventory();
+    } else if (action === 'getItems') {
+      result = getItems_(e);
+    } else if (action === 'getItem') {
+      result = getItem_(e && e.parameter ? e.parameter.id : '');
+    } else if (action === 'getInventoryInit') {
+      const sheetName = getInventorySheetName_();
+      const columns = getInventorySheetColumns_();
+      const inventory = getInventory();
+      result = { 
+        sheetName, 
+        columns: columns.columns, 
+        inventory,
+        sheets: listSheetNames_()
+      };
+    } else if (action === 'getSheets') {
+      result = { 
+        sheets: listSheetNames_(),
+        currentSheet: getInventorySheetName_()
+      };
+    } else if (action === 'getInventorySheetName') {
+      result = { name: getInventorySheetName_() };
+    } else if (action === 'getInventorySheetColumns') {
+      result = getInventorySheetColumns_();
     } else if (action === 'getSuppliers') {
       result = getSuppliers();
     } else if (action === 'getAuditLogs') {
       result = getAuditLogs();
     } else if (action === 'checkDisposalNotifications') {
       result = checkDisposalNotifications();
+    } else if (action === 'verifyAccess') {
+      const hash = e && e.parameter && e.parameter.hash ? e.parameter.hash : '';
+      result = verifyAccess_(hash);
+    } else if (action === 'getSystemConfig') {
+      result = getSystemConfig();
+    } else if (action === 'updateSystemConfig') {
+      const updates = e && e.parameter ? e.parameter : {};
+      result = updateSystemConfig(updates);
+    } else if (action === 'getDataSource') {
+      const source = e && e.parameter && e.parameter.source ? e.parameter.source : '';
+      result = { source: getDataSource(source) };
+    } else if (action === 'clearCache') {
+      const key = e && e.parameter && e.parameter.key ? e.parameter.key : '';
+      clearCache(key);
+      result = { success: true, message: 'Cache cleared' };
+    } else if (action === 'getSystemLogs') {
+      const limit = parseInt(e && e.parameter && e.parameter.limit ? e.parameter.limit : '100');
+      result = getSystemLogs_(limit);
+    } else if (action === 'savePAR') {
+      // In case it comes via GET (though it should be POST)
+      result = { error: 'savePAR requires POST' };
     } else {
       result = { error: action ? 'Invalid action' : 'Missing action' };
     }
@@ -24,6 +301,146 @@ function doGet(e) {
   
   return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getItems_(e) {
+  const config = getSystemConfig();
+  const p = e && e.parameter ? e.parameter : {};
+  const limitRaw = Number(p.limit || config.batchSize);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : config.batchSize));
+  const pageRaw = Number(p.page || 1);
+  const page = Math.max(1, Number.isFinite(pageRaw) ? pageRaw : 1);
+  const search = String(p.search || '').trim().toLowerCase();
+  const order = String(p.order || 'asc').trim().toLowerCase();
+  const nocache = p.nocache === 'true';
+
+  // Check cache first
+  const sheetName = getInventorySheetName_();
+  const cacheKey = `items_${sheetName}_${search}_${page}_${limit}_${order}`;
+  if (!nocache) {
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+  }
+
+  const sheet = getInventorySheet_();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return { items: [], hasMore: false };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h ?? '').trim());
+  const totalRows = lastRow - 1;
+
+  logAction('Get Items', `Fetching page ${page}, limit ${limit}, search: "${search}"`, 'debug');
+
+  if (search) {
+    const all = getInventory();
+    const filtered = all.filter(it => {
+      const hay = [
+        it.Project,
+        it.Category,
+        it.Item,
+        it.BrandModel,
+        it.Serial,
+        it.Unit,
+        it.Status,
+        it.Remarks,
+        it.ID
+      ]
+        .map(v => String(v ?? '').toLowerCase())
+        .join(' | ');
+      return hay.includes(search);
+    });
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const result = { 
+      items: filtered.slice(startIndex, endIndex), 
+      hasMore: endIndex < filtered.length,
+      pageCount: Math.max(1, Math.ceil(filtered.length / limit)),
+      total: filtered.length
+    };
+    setCachedData(cacheKey, result);
+    return result;
+  }
+
+  if (order === 'desc') {
+    const endRow = lastRow - (page - 1) * limit;
+    if (endRow < 2) return { items: [], hasMore: false };
+    const startRow = Math.max(2, endRow - limit + 1);
+    const numRows = endRow - startRow + 1;
+    const values = sheet.getRange(startRow, 1, numRows, lastCol).getValues();
+    const items = values
+      .map((row, i) => standardizeInventoryRow_(headers, row, startRow + i))
+      .reverse();
+    const result = { 
+      items, 
+      hasMore: startRow > 2,
+      pageCount: Math.max(1, Math.ceil(totalRows / limit)),
+      total: totalRows
+    };
+    setCachedData(cacheKey, result);
+    return result;
+  }
+
+  const startRow = 2 + (page - 1) * limit;
+  if (startRow > lastRow) return { items: [], hasMore: false };
+  const numRows = Math.min(limit, lastRow - startRow + 1);
+  const values = sheet.getRange(startRow, 1, numRows, lastCol).getValues();
+  const items = values.map((row, i) => standardizeInventoryRow_(headers, row, startRow + i));
+  const hasMore = startRow + numRows - 1 < lastRow;
+  const result = { 
+    items, 
+    hasMore,
+    pageCount: Math.max(1, Math.ceil(totalRows / limit)),
+    total: totalRows
+  };
+  setCachedData(cacheKey, result);
+  return result;
+}
+
+function getItem_(id) {
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return { error: 'Item not found' };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h ?? '').trim());
+  const rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const rowNumber = findInventoryRowNumber_(headers, rows, id);
+  if (!rowNumber) return { error: 'Item not found' };
+
+  const row = sheet.getRange(rowNumber, 1, 1, lastCol).getValues()[0];
+  return standardizeInventoryRow_(headers, row, rowNumber);
+}
+
+function standardizeInventoryRow_(headers, row, rowNumber) {
+  const raw = {};
+  for (let j = 0; j < headers.length; j++) raw[headers[j]] = row[j];
+  const rowId = `ROW#${rowNumber}`;
+  const item = {
+    ID: raw.ID || raw.Id || raw.id || raw.Serial || rowId,
+    Project: raw.Project || raw['Project Name'] || '',
+    Category: raw.Category || '',
+    Item: raw.Item || '',
+    BrandModel: raw.BrandModel || raw['Brand and model'] || raw['Brand and Model'] || '',
+    Serial: raw.Serial || '',
+    Qty: raw.Qty ?? '',
+    Unit: raw.Unit || '',
+    UnitCost: raw.UnitCost ?? raw['Unit Cost'] ?? '',
+    DateAcquired: raw.DateAcquired || raw['Date Acquired'] || '',
+    ProcurementProject:
+      raw.ProcurementProject ||
+      raw['Procurement/\nProject'] ||
+      raw['Procurement/Project'] ||
+      raw['Procurement Project'] ||
+      raw.Procurement ||
+      '',
+    PersonInCharge: raw.PersonInCharge || raw['Person-in-charge'] || raw['Person in Charge'] || '',
+    Location: raw.Location || '',
+    Status: raw.Status || '',
+    Remarks: raw.Remarks || ''
+  };
+  return { ...raw, ...item, _raw: raw };
 }
 
 function doPost(e) {
@@ -41,7 +458,7 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
   }
   
-  const action = e && e.parameter ? e.parameter.action : null;
+  const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : (data && data.action ? data.action : null);
   let result = {};
   
   try {
@@ -57,6 +474,25 @@ function doPost(e) {
       result = addSupplier(data);
     } else if (action === 'geminiChat') {
       result = geminiChat(data);
+    } else if (action === 'setInventorySheetName') {
+      result = setInventorySheetName_(String(data && data.name ? data.name : ''));
+    } else if (action === 'createInventorySheet') {
+      result = createInventorySheet_(String(data && data.name ? data.name : ''), data && Array.isArray(data.columns) ? data.columns : []);
+    } else if (action === 'deleteInventorySheet') {
+      result = deleteInventorySheet_(String(data && data.name ? data.name : ''));
+    } else if (action === 'getInventorySheetColumns') {
+      result = getInventorySheetColumns_();
+    } else if (action === 'renameInventorySheetColumn') {
+      result = renameInventorySheetColumn_(data.oldName, data.newName);
+    } else if (action === 'addInventorySheetColumn') {
+      result = addInventorySheetColumn_(data.name);
+    } else if (action === 'removeInventorySheetColumn') {
+      result = removeInventorySheetColumn_(data.name);
+    } else if (action === 'verifyAccess') {
+      const hash = data && (data.hashedPassword || data.hash) ? (data.hashedPassword || data.hash) : '';
+      result = verifyAccess_(hash);
+    } else if (action === 'savePAR') {
+      result = savePAR_(data);
     } else {
       result = { error: action ? 'Invalid action' : 'Missing action' };
     }
@@ -66,6 +502,27 @@ function doPost(e) {
   
   return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
+}
+
+function verifyAccess_(hash) {
+  const ACCESS_SCRIPT = '1Vt_jqc3vo0Z_YMlkSTJVFGDNjB9efBC1075DVu0qbt9p_-0rZ1qfDNYC';
+  const expectedHash = sha256Hex_(ACCESS_SCRIPT);
+  if (!hash || !String(hash).trim()) {
+    return { success: false, message: 'Missing access hash' };
+  }
+  if (String(hash).trim() === expectedHash) {
+    return { success: true };
+  }
+  return { success: false, message: 'Invalid access script' };
+}
+
+function sha256Hex_(value) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(value || ''),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 }
 
 function geminiChat(payload) {
@@ -253,11 +710,12 @@ function findHeaderIndex_(headers, candidates) {
   return -1;
 }
 
-function ensureInventorySheetColumns_(sheet) {
+function ensureInventorySheetColumns_(sheet, customColumns) {
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 1 || lastCol < 1) {
-    sheet.appendRow([
+  
+  // Default columns
+  const defaultCols = [
       'Project',
       'Category',
       'Item',
@@ -272,7 +730,18 @@ function ensureInventorySheetColumns_(sheet) {
       'Location',
       'Status',
       'Remarks'
-    ]);
+  ];
+
+  // Merge custom columns if provided
+  let finalCols = [...defaultCols];
+  if (Array.isArray(customColumns) && customColumns.length > 0) {
+      // Filter out duplicates
+      const additional = customColumns.filter(c => !defaultCols.includes(c));
+      finalCols = [...defaultCols, ...additional];
+  }
+
+  if (lastRow < 1 || lastCol < 1) {
+    sheet.appendRow(finalCols);
     return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h ?? '').trim());
   }
 
@@ -280,8 +749,211 @@ function ensureInventorySheetColumns_(sheet) {
   return headers;
 }
 
+function getInventorySheetName_() {
+  const props = PropertiesService.getScriptProperties();
+  const name = props.getProperty('INVENTORY_SHEET_NAME');
+  
+  if (name && name.trim() !== '') {
+    return name;
+  }
+  return 'Inventory';
+}
+
+function getInventorySheet_() {
+  const sheetName = getInventorySheetName_();
+  const ss = getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`Inventory sheet not found: ${sheetName}`);
+  }
+  return sheet;
+}
+
+function setInventorySheetName_(rawName) {
+  const name = String(rawName || '').trim();
+  if (!name) throw new Error('Sheet name is required');
+  const ss = getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  
+  if (!sheet) {
+    // Do not create sheet automatically when selecting. 
+    // User must use createInventorySheet for that.
+    return { error: `Sheet "${name}" not found.` };
+  }
+  
+  ensureInventorySheetColumns_(sheet);
+  PropertiesService.getScriptProperties().setProperty('INVENTORY_SHEET_NAME', name);
+  CACHE.config = null;
+  CACHE.configTimestamp = 0;
+  clearCache();
+  logAction('Select Inventory Sheet', 'Using sheet: ' + name);
+  return { success: true, name };
+}
+
+function createInventorySheet_(rawName, customColumns) {
+  const base = String(rawName || '').trim() || 'Inventory';
+  const ss = getActiveSpreadsheet();
+  let name = base;
+  let idx = 1;
+  while (ss.getSheetByName(name)) {
+    idx += 1;
+    name = `${base} (${idx})`;
+    if (idx > 50) break;
+  }
+  const sheet = ss.insertSheet(name);
+  ensureInventorySheetColumns_(sheet, customColumns);
+  PropertiesService.getScriptProperties().setProperty('INVENTORY_SHEET_NAME', name);
+  CACHE.config = null;
+  CACHE.configTimestamp = 0;
+  logAction('Create Inventory Sheet', 'Created and selected sheet: ' + name);
+  return { success: true, name };
+}
+
+function deleteInventorySheet_(rawName) {
+  const ss = getActiveSpreadsheet();
+  const current = getInventorySheetName_();
+  const name = String(rawName || current).trim();
+  if (!name) return { error: 'Sheet name is required' };
+  const sheet = ss.getSheetByName(name);
+  if (!sheet) return { error: `Sheet "${name}" not found.` };
+  const sheets = ss.getSheets();
+  if (sheets.length <= 1) return { error: 'Cannot delete the last remaining sheet.' };
+  
+  ss.deleteSheet(sheet);
+  
+  const names = listSheetNames_();
+  let newName = '';
+  if (names.includes('Inventory')) {
+    newName = 'Inventory';
+  } else {
+    newName = names[0] || '';
+  }
+  if (newName) {
+    PropertiesService.getScriptProperties().setProperty('INVENTORY_SHEET_NAME', newName);
+  } else {
+    PropertiesService.getScriptProperties().deleteProperty('INVENTORY_SHEET_NAME');
+  }
+  CACHE.config = null;
+  CACHE.configTimestamp = 0;
+  clearCache();
+  logAction('Delete Inventory Sheet', `Deleted sheet: ${name}. Selected: ${newName || '(none)'}`);
+  return { success: true, name: newName, sheets: names };
+}
+
+function savePAR_(payload) {
+  const ss = getActiveSpreadsheet();
+  const name = 'PAR';
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  const header = payload && payload.header ? payload.header : {};
+  const items = payload && Array.isArray(payload.items) ? payload.items : [];
+  const signatories = payload && payload.signatories ? payload.signatories : {};
+  const totalAmount = Number(payload && payload.totalAmount ? payload.totalAmount : 0);
+  const cols = ['PAR Number','Entity Name','Fund Cluster','Quantity','Unit','Description','Property Number','Date Acquired','Amount','Received By Name','Received By Position','Issued By Name','Issued By Position','Total Amount','Created At'];
+  if (sheet.getLastRow() === 0) sheet.getRange(1,1,1,cols.length).setValues([cols]);
+  const rows = items.map(it => [
+    String(header.parNumber || ''),
+    String(header.entityName || ''),
+    String(header.fundCluster || ''),
+    Number(it.qty || 0),
+    String(it.unit || ''),
+    String(it.description || ''),
+    String(it.propertyNumber || ''),
+    String(it.dateAcquired || ''),
+    Number(it.amount || 0),
+    String(signatories.receivedBy && signatories.receivedBy.name || ''),
+    String(signatories.receivedBy && signatories.receivedBy.position || ''),
+    String(signatories.issuedBy && signatories.issuedBy.name || ''),
+    String(signatories.issuedBy && signatories.issuedBy.position || ''),
+    totalAmount,
+    new Date()
+  ]);
+  if (rows.length) {
+    sheet.getRange(sheet.getLastRow()+1,1,rows.length,cols.length).setValues(rows);
+    
+    // Automatically deduct quantity from inventory
+    items.forEach(it => {
+      if (it.itemId && it.qty) {
+        try {
+          const qtyDeduct = -Math.abs(Number(it.qty));
+          adjustStock(it.itemId, qtyDeduct, `PAR Issued: ${header.parNumber || 'N/A'}`);
+        } catch (e) {
+          console.error(`Failed to deduct stock for item ${it.itemId}: ${e.message}`);
+          logAction('PAR Stock Error', `Failed to deduct stock for item ${it.itemId}: ${e.message}`);
+        }
+      }
+    });
+  }
+  logAction('Save PAR', `Saved PAR ${String(header.parNumber || '')} items: ${rows.length}`);
+  return { success: true, count: rows.length };
+}
+
+function renameInventorySheetColumn_(oldName, newName) {
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return { error: 'Sheet is empty' };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h ?? '').trim());
+  const idx = headers.indexOf(String(oldName || '').trim());
+  
+  if (idx === -1) {
+    return { error: 'Column not found: ' + oldName };
+  }
+  
+  sheet.getRange(1, idx + 1).setValue(String(newName || '').trim());
+  logAction('Rename Column', `Renamed column '${oldName}' to '${newName}' in sheet '${sheetName}'`);
+  return { success: true };
+}
+
+function addInventorySheetColumn_(name) {
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const lastCol = sheet.getLastColumn();
+  
+  // Add new header at the end
+  sheet.getRange(1, lastCol + 1).setValue(name);
+  
+  logAction('Add Column', `Added new column "${name}" to sheet: ${sheetName}`);
+  return { success: true };
+}
+
+function removeInventorySheetColumn_(name) {
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return { error: 'Sheet is empty' };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h ?? '').trim());
+  const idx = headers.indexOf(String(name || '').trim());
+  
+  if (idx === -1) {
+    return { error: 'Column not found: ' + name };
+  }
+  
+  // deleteColumn is 1-based index
+  sheet.deleteColumn(idx + 1);
+  logAction('Delete Column', `Deleted column "${name}" from sheet: ${sheetName}`);
+  return { success: true };
+}
+
+function getInventorySheetColumns_() {
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return { columns: [] };
+  
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h ?? '').trim());
+  return { columns: headers };
+}
+
+function listSheetNames_() {
+  const ss = getActiveSpreadsheet();
+  return ss.getSheets().map(s => s.getName());
+}
+
 function getSheet(name) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -393,9 +1065,55 @@ function findInventoryRowNumber_(headers, data, idValue) {
   return null;
 }
 
+function getSystemLogs_(limit = 100) {
+  const config = getSystemConfig();
+  try {
+    const sheet = getSheet(config.auditSheetName);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+    
+    const startRow = Math.max(2, lastRow - limit + 1);
+    const numRows = lastRow - startRow + 1;
+    const values = sheet.getRange(startRow, 1, numRows, 5).getValues();
+    
+    return values.reverse().map(row => ({
+      timestamp: row[0],
+      action: row[1],
+      details: row[2],
+      level: row[3],
+      user: row[4]
+    }));
+  } catch (error) {
+    logAction('Get System Logs Error', error.message, 'error');
+    return [];
+  }
+}
+
 // --- Dashboard Stats ---
 function getDashboardStats() {
-  const inventory = getInventory();
+  const config = getSystemConfig();
+  const sheetName = getInventorySheetName_();
+  const cacheKey = `dashboard_stats_${sheetName}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+  
+  const dataSource = getDataSource('inventory');
+  logAction('Get Dashboard Stats', `Data source: ${dataSource}`, 'debug');
+  
+  let inventory = [];
+  if (dataSource === 'internal') {
+    inventory = getInventory();
+  } else if (dataSource === 'external' && config.externalApis.inventory) {
+    try {
+      const externalData = fetchExternalData(config.externalApis.inventory);
+      inventory = externalData.items || [];
+    } catch (error) {
+      logAction('External Inventory Error', error.message, 'error');
+      inventory = getInventory(); // Fallback to internal
+    }
+  } else {
+    inventory = getInventory();
+  }
   
   const totalItems = inventory.length;
   
@@ -409,9 +1127,11 @@ function getDashboardStats() {
     return !isNaN(qty) && qty <= 0;
   }).length;
   
-  const auditLogs = getAuditLogs();
+  const auditLogs = getSystemLogs_(50);
   const recentActivities = auditLogs.slice(-5).reverse();
+  
   const transactions = getTransactions_();
+  logAction('Dashboard Stats', `Found ${transactions.length} transactions`, 'debug');
 
   const tz = Session.getScriptTimeZone();
   const today = new Date();
@@ -435,18 +1155,26 @@ function getDashboardStats() {
   };
 
   const inRangeIndex = dt => {
-    if (!(dt instanceof Date) || isNaN(dt.getTime())) return -1;
-    const copy = new Date(dt);
+    if (!dt) return -1;
+    let d = dt;
+    if (!(d instanceof Date)) {
+      d = new Date(dt);
+    }
+    if (isNaN(d.getTime())) return -1;
+    
+    const copy = new Date(d);
     copy.setHours(0, 0, 0, 0);
+    
     if (copy < start || copy > today) return -1;
-    return Math.floor((copy.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+    
+    const diffTime = Math.abs(copy.getTime() - start.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays >= 0 && diffDays < 7 ? diffDays : -1;
   };
 
   transactions.forEach(t => {
-    const dtRaw = t.Timestamp;
-    const dt = dtRaw instanceof Date ? dtRaw : new Date(dtRaw);
-    const idx = inRangeIndex(dt);
-    if (idx < 0 || idx > 6) return;
+    const idx = inRangeIndex(t.Timestamp);
+    if (idx < 0) return;
 
     const qty = Math.abs(toNum(t.Quantity));
     if (!qty) return;
@@ -466,7 +1194,7 @@ function getDashboardStats() {
     return sum + ((parseFloat(item.Qty) || 0) * (parseFloat(item.UnitCost) || 0));
   }, 0);
 
-  return {
+  const result = {
     totalItems,
     lowStock,
     outOfStock,
@@ -474,11 +1202,15 @@ function getDashboardStats() {
     recentActivities,
     weeklyActivity: { labels, sales, restocks, trend }
   };
+  
+  setCachedData(cacheKey, result);
+  return result;
 }
 
 // --- Products / Items Masterlist ---
 function getInventory() {
-  const sheet = getSheet('Inventory');
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
 
@@ -492,17 +1224,18 @@ function getInventory() {
     // Row number is i + 2 (1-based index, +1 for header)
     const rowId = `ROW#${i + 2}`;
     
-    return {
-      ID: raw.ID || raw.Id || raw.id || raw.Serial || rowId,
-      Project: raw.Project || raw['Project Name'] || '',
-      Category: raw.Category || '',
-      Item: raw.Item || '',
-      BrandModel: raw.BrandModel || raw['Brand and model'] || raw['Brand and Model'] || '',
-      Serial: raw.Serial || '',
-      Qty: raw.Qty ?? '',
-      Unit: raw.Unit || '',
-      UnitCost: raw.UnitCost ?? raw['Unit Cost'] ?? '',
-      DateAcquired: raw.DateAcquired || raw['Date Acquired'] || '',
+    // Standardize known keys with robust alias matching
+    const item = {
+      ID: raw.ID || raw.Id || raw.id || raw['Property No.'] || raw['Property Number'] || raw.Serial || rowId,
+      Project: raw.Project || raw['Project Name'] || raw['Project/Program'] || '',
+      Category: raw.Category || raw['Classification'] || raw['Type'] || '',
+      Item: raw.Item || raw['Item Name'] || raw['Item Description'] || raw.Description || raw.Article || '',
+      BrandModel: raw.BrandModel || raw['Brand and model'] || raw['Brand and Model'] || raw.Brand || raw.Model || '',
+      Serial: raw.Serial || raw['Serial No.'] || raw['Serial Number'] || '',
+      Qty: raw.Qty || raw.Quantity || raw.Stock || raw.Count || 0,
+      Unit: raw.Unit || raw.UOM || raw['Unit of Measure'] || '',
+      UnitCost: raw.UnitCost || raw['Unit Cost'] || raw.Cost || raw.Price || raw['Unit Value'] || 0,
+      DateAcquired: raw.DateAcquired || raw['Date Acquired'] || raw['Date Added'] || raw.Date || '',
       ProcurementProject:
         raw.ProcurementProject ||
         raw['Procurement/\nProject'] ||
@@ -510,20 +1243,24 @@ function getInventory() {
         raw['Procurement Project'] ||
         raw.Procurement ||
         '',
-      PersonInCharge: raw.PersonInCharge || raw['Person-in-charge'] || raw['Person in Charge'] || '',
-      Location: raw.Location || '',
-      Status: raw.Status || '',
-      Remarks: raw.Remarks || ''
+      PersonInCharge: raw.PersonInCharge || raw['Person-in-charge'] || raw['Person in Charge'] || raw.Custodian || raw['End User'] || '',
+      Location: raw.Location || raw.Office || raw['Whereabout'] || '',
+      Status: raw.Status || raw.Condition || raw.State || raw.Remarks || '', // Fallback to Remarks if status is missing
+      Remarks: raw.Remarks || raw.Comment || raw.Notes || ''
     };
+    
+    // Merge raw data so custom columns are available
+    return { ...raw, ...item, _raw: raw };
   });
 }
 
 function addItem(item) {
-  const sheet = getSheet('Inventory');
-  const headers = ensureInventorySheetColumns_(sheet);
+  item = item && typeof item === 'object' ? item : {};
+  if (item && item.item && typeof item.item === 'object') item = item.item;
 
-  let status = item.Status;
-  if (!status) status = item.Qty > 0 ? 'Good' : 'Out of Stock';
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
+  const headers = ensureInventorySheetColumns_(sheet);
 
   // Helper to prevent formula injection
   const sanitizeForSheet = (value) => {
@@ -534,34 +1271,45 @@ function addItem(item) {
   };
 
   const row = new Array(headers.length).fill('');
-  const set = (candidates, value) => {
-    const idx = findHeaderIndex_(headers, candidates);
-    if (idx > -1) row[idx] = sanitizeForSheet(value);
-  };
+  
+  // Dynamic mapping: Loop through all headers and find values in the item object
+  headers.forEach((header, idx) => {
+    // Try exact match first
+    if (item && item[header] !== undefined) {
+      row[idx] = sanitizeForSheet(item[header]);
+    } else {
+      // Try alias matching if not found
+      for (const [key, aliases] of Object.entries(INVENTORY_COLUMN_VALIDATION)) {
+        if (aliases.some(a => a.toLowerCase() === header.toLowerCase())) {
+          if (item && item[key] !== undefined) {
+            row[idx] = sanitizeForSheet(item[key]);
+          }
+          break;
+        }
+      }
+    }
+  });
 
-  set(['Project', 'Project Name'], item.Project);
-  set(['Category'], item.Category);
-  set(['Item'], item.Item);
-  set(['BrandModel', 'Brand and model', 'Brand and Model'], item.BrandModel);
-  set(['Serial'], item.Serial);
-  set(['Qty'], item.Qty); // Qty is usually number, but good to be safe if string passed
-  set(['Unit'], item.Unit);
-  set(['UnitCost', 'Unit Cost'], item.UnitCost);
-  set(['DateAcquired', 'Date Acquired'], item.DateAcquired);
-  set(['ProcurementProject', 'Procurement/\nProject', 'Procurement/Project', 'Procurement Project', 'Procurement'], item.ProcurementProject);
-  set(['PersonInCharge', 'Person-in-charge', 'Person in Charge'], item.PersonInCharge);
-  set(['Location'], item.Location);
-  set(['Status'], status);
-  set(['Remarks'], item.Remarks);
+  const hasAnyValue = row.some(v => v !== '' && v !== null && v !== undefined);
+  if (!hasAnyValue) return { error: 'Missing item payload' };
+
+  // Handle Status default if empty
+  const statusIdx = findHeaderIndex_(headers, ['Status']);
+  if (statusIdx > -1 && !row[statusIdx]) {
+    const qtyIdx = findHeaderIndex_(headers, ['Qty']);
+    const qty = qtyIdx > -1 ? Number(row[qtyIdx]) : 0;
+    row[statusIdx] = qty > 0 ? 'Good' : 'Out of Stock';
+  }
 
   sheet.appendRow(row);
   
-  logAction('Add Item', `Added item: ${item.Item} (Serial: ${item.Serial})`);
+  logAction('Add Item', `Added item to sheet: ${sheetName}`);
   return { success: true };
 }
 
 function editItem(id, updatedItem) {
-  const sheet = getSheet('Inventory');
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
   const headers = ensureInventorySheetColumns_(sheet);
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) throw new Error('Item not found');
@@ -583,32 +1331,27 @@ function editItem(id, updatedItem) {
   const foundRowNumber = findInventoryRowNumber_(headers, rows, id);
   
   if (foundRowNumber) {
-    const row = rows[foundRowNumber - 2]; // Get the actual row array
-    
-    // Helper to update cell if key exists in updates
-    const updateCell = (candidates, value) => {
-      const idx = findHeaderIndex_(headers, candidates);
-      if (idx > -1) {
-         sheet.getRange(foundRowNumber, idx + 1).setValue(sanitizeForSheet(value));
+    // Iterate through all updates and find the corresponding column index
+    for (const [key, value] of Object.entries(updates)) {
+      // Find the index of this header or its alias
+      let colIdx = headers.indexOf(key);
+      if (colIdx === -1) {
+        // Try alias matching
+        for (const [stdKey, aliases] of Object.entries(INVENTORY_COLUMN_VALIDATION)) {
+          if (stdKey === key) {
+            // Find which header in the sheet matches one of these aliases
+            colIdx = headers.findIndex(h => aliases.some(a => a.toLowerCase() === h.toLowerCase()));
+            break;
+          }
+        }
       }
-    };
 
-    if (updates.Project !== undefined) updateCell(['Project', 'Project Name'], updates.Project);
-    if (updates.Category !== undefined) updateCell(['Category'], updates.Category);
-    if (updates.Item !== undefined) updateCell(['Item'], updates.Item);
-    if (updates.BrandModel !== undefined) updateCell(['BrandModel', 'Brand and model', 'Brand and Model'], updates.BrandModel);
-    if (updates.Serial !== undefined) updateCell(['Serial'], updates.Serial);
-    if (updates.Qty !== undefined) updateCell(['Qty'], updates.Qty);
-    if (updates.Unit !== undefined) updateCell(['Unit'], updates.Unit);
-    if (updates.UnitCost !== undefined) updateCell(['UnitCost', 'Unit Cost'], updates.UnitCost);
-    if (updates.DateAcquired !== undefined) updateCell(['DateAcquired', 'Date Acquired'], updates.DateAcquired);
-    if (updates.ProcurementProject !== undefined) updateCell(['ProcurementProject', 'Procurement/\nProject', 'Procurement/Project', 'Procurement Project', 'Procurement'], updates.ProcurementProject);
-    if (updates.PersonInCharge !== undefined) updateCell(['PersonInCharge', 'Person-in-charge', 'Person in Charge'], updates.PersonInCharge);
-    if (updates.Location !== undefined) updateCell(['Location'], updates.Location);
-    if (updates.Status !== undefined) updateCell(['Status'], updates.Status);
-    if (updates.Remarks !== undefined) updateCell(['Remarks'], updates.Remarks);
+      if (colIdx > -1) {
+        sheet.getRange(foundRowNumber, colIdx + 1).setValue(sanitizeForSheet(value));
+      }
+    }
 
-    logAction('Edit Item', `Edited item: ${updatedItem.Item || id}`);
+    logAction('Edit Item', `Edited item ID: ${id} in sheet: ${sheetName}`);
     return { success: true };
   }
   
@@ -616,7 +1359,8 @@ function editItem(id, updatedItem) {
 }
 
 function deleteItem(id) {
-  const sheet = getSheet('Inventory');
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
   const headers = ensureInventorySheetColumns_(sheet);
   const data = sheet.getDataRange().getValues();
   
@@ -633,7 +1377,8 @@ function deleteItem(id) {
 }
 
 function adjustStock(itemId, quantityChange, reason) {
-  const sheet = getSheet('Inventory');
+  const sheetName = getInventorySheetName_();
+  const sheet = getInventorySheet_();
   const headers = ensureInventorySheetColumns_(sheet);
   const data = sheet.getDataRange().getValues();
   const qtyIndex = findHeaderIndex_(headers, ['Qty']);

@@ -1,0 +1,142 @@
+<div class="p-8 bg-white rounded-2xl shadow-md print:shadow-none print:p-0">
+  <!-- Action Buttons (Hidden on Print) -->
+  <div class="flex items-center justify-between mb-8 print:hidden">
+    <div class="flex items-center gap-4">
+      <h2 class="text-2xl font-bold text-gray-800 tracking-tight">PAR Form Builder</h2>
+      <span class="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded-lg border border-indigo-100">Appendix 71</span>
+    </div>
+    <div class="flex gap-3">
+      <button id="par-edit-toggle" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold text-sm" onclick="toggleParEditMode()">
+        <i class="fa-solid fa-pen-to-square mr-2"></i>Edit Mode
+      </button>
+      <button class="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all font-bold text-sm" onclick="savePAR(event)">
+        <i class="fa-solid fa-floppy-disk mr-2"></i>Save & Print PAR
+      </button>
+    </div>
+  </div>
+
+  <!-- Form Header Settings (Hidden on Print) -->
+  <div class="print:hidden mb-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+    <div class="space-y-4">
+      <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">Document Logos</h3>
+      <div class="flex items-center gap-4">
+        <div class="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 bg-white overflow-hidden flex items-center justify-center group relative">
+          <img id="par-logo-left-preview" class="max-w-full max-h-full object-contain p-2" alt="">
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+             <i class="fa-solid fa-camera text-white"></i>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <input type="file" id="par-logo-left-input" accept="image/*" class="hidden" onchange="parHandleLogoFile('left', this)">
+          <button class="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold rounded-lg hover:bg-gray-50 transition-all" onclick="document.getElementById('par-logo-left-input').click()">Upload Logo</button>
+          <button class="px-3 py-1.5 text-[10px] font-bold text-rose-600 hover:text-rose-700" onclick="parClearLogos()">Remove</button>
+        </div>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">Table Controls</h3>
+      <div class="flex gap-3">
+        <button class="flex-1 px-4 py-3 bg-white border border-gray-200 text-indigo-600 rounded-xl hover:border-indigo-200 transition-all font-bold text-xs" onclick="parAddRow()">
+          <i class="fa-solid fa-plus mr-2"></i>Add Blank Row
+        </button>
+        <button class="px-4 py-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-all font-bold text-xs" onclick="parClearRows()">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The Actual PAR Form Layout -->
+  <div id="par-actual-form" class="max-w-4xl mx-auto font-serif text-black border border-gray-200 p-10 bg-white print:border-none print:p-0">
+    <!-- Title -->
+    <div class="text-center mb-10">
+      <h1 class="text-xl font-black uppercase tracking-widest border-b-2 border-black inline-block pb-1">Property Acknowledgement Receipt</h1>
+    </div>
+
+    <!-- Header Fields -->
+    <div class="space-y-4 mb-8">
+      <div class="flex items-end gap-3">
+        <span class="font-bold whitespace-nowrap">Entity Name:</span>
+        <input id="par-entity" type="text" class="flex-1 border-b border-black outline-none px-2 py-0.5 bg-transparent focus:bg-yellow-50/30 transition-colors" placeholder="________________________________________________">
+      </div>
+      <div class="flex items-end justify-between gap-8">
+        <div class="flex-1 flex items-end gap-3">
+          <span class="font-bold whitespace-nowrap">Fund Cluster:</span>
+          <input id="par-fund" type="text" class="flex-1 border-b border-black outline-none px-2 py-0.5 bg-transparent focus:bg-yellow-50/30 transition-colors" placeholder="________________________________">
+        </div>
+        <div class="flex gap-6">
+          <div class="flex items-end gap-3">
+            <span class="font-bold whitespace-nowrap">PAR No.:</span>
+            <input id="par-number" type="text" class="w-32 border-b border-black outline-none px-2 py-0.5 bg-transparent focus:bg-yellow-50/30 transition-colors" placeholder="__________">
+          </div>
+          <div class="flex items-end gap-3">
+            <span class="font-bold whitespace-nowrap">Date:</span>
+            <input id="par-date" type="text" class="w-32 border-b border-black outline-none px-2 py-0.5 bg-transparent focus:bg-yellow-50/30 transition-colors" placeholder="__________">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="mb-8">
+      <table class="w-full border-collapse border-[1.5px] border-black text-sm">
+        <thead>
+          <tr class="bg-gray-50/50">
+            <th class="border border-black px-2 py-3 w-16 font-bold uppercase"><span id="par-col-qty">Quantity</span></th>
+            <th class="border border-black px-2 py-3 w-16 font-bold uppercase"><span id="par-col-unit">Unit</span></th>
+            <th class="border border-black px-4 py-3 font-bold uppercase"><span id="par-col-desc">Description</span></th>
+            <th class="border border-black px-2 py-3 w-32 font-bold uppercase"><span id="par-col-prop">Property Number</span></th>
+            <th class="border border-black px-2 py-3 w-28 font-bold uppercase"><span id="par-col-date">Date Acquired</span></th>
+            <th class="border border-black px-2 py-3 w-32 font-bold uppercase"><span id="par-col-amount">Amount</span></th>
+            <th class="border border-black px-2 py-3 w-32 print:hidden font-bold uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="par-tbody" class="divide-y divide-black">
+          <!-- Rows will be injected here -->
+        </tbody>
+        <tfoot>
+          <tr class="font-bold">
+            <td colspan="5" class="border border-black px-4 py-3 text-right uppercase tracking-widest">Total Amount</td>
+            <td class="border border-black px-2 py-3">
+              <input id="par-total" type="text" class="w-full bg-transparent outline-none font-bold text-right" readonly value="₱0.00">
+            </td>
+            <td class="border border-black print:hidden"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Footer / Signatories -->
+    <div class="grid grid-cols-2 border border-black divide-x divide-black">
+      <!-- Received By Column -->
+      <div class="p-4 space-y-12 flex flex-col items-center">
+        <div class="w-full font-bold italic underline text-left">Received by:</div>
+        
+        <div class="w-4/5 space-y-1 text-center">
+          <input id="par-received-name" type="text" class="w-full text-center border-b border-black outline-none font-bold uppercase bg-transparent" placeholder="Enter Name">
+          <div class="text-[9px] uppercase font-bold tracking-tight leading-tight">Signature over Printed Name of End User</div>
+        </div>
+
+        <div class="w-4/5 space-y-1 text-center">
+          <input id="par-received-position" type="text" class="w-full text-center border-b border-black outline-none text-xs bg-transparent" placeholder="Enter Position/Office">
+          <div class="text-[9px] uppercase font-bold tracking-tight leading-tight">Position/Office</div>
+        </div>
+      </div>
+
+      <!-- Issued By Column -->
+      <div class="p-4 space-y-12 flex flex-col items-center">
+        <div class="w-full font-bold italic underline text-left">Issued by:</div>
+        
+        <div class="w-4/5 space-y-1 text-center">
+          <input id="par-issued-name" type="text" class="w-full text-center border-b border-black outline-none font-bold uppercase bg-transparent" placeholder="Enter Name">
+          <div class="text-[9px] uppercase font-bold tracking-tight leading-tight text-balance">Signature over Printed Name of Supply and/or Property Custodian</div>
+        </div>
+
+        <div class="w-4/5 space-y-1 text-center">
+          <input id="par-issued-position" type="text" class="w-full text-center border-b border-black outline-none text-xs bg-transparent" placeholder="Enter Position/Office">
+          <div class="text-[9px] uppercase font-bold tracking-tight leading-tight">Position/Office</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,82 +1,171 @@
 <div id="inventory-content">
-   <div class="bg-white shadow-lg rounded-2xl overflow-hidden ring-1 ring-gray-200/60">
-      <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gradient-to-r from-blue-700 to-indigo-700">
-       <div class="flex items-center space-x-3">
-         <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20">
-           <i class="fa-solid fa-boxes-stacked text-white text-lg"></i>
-         </div>
-         <div>
-           <h3 class="text-lg leading-6 font-semibold text-white">Inventory Records</h3>
-           <p class="text-xs text-white/80 mt-0.5">View and track items</p>
-         </div>
-       </div>
-        <div class="flex items-center justify-end gap-2 flex-wrap">
-          <select id="inv-filter-stock" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
-            <option value="all">All Stock</option>
-            <option value="in">In Stock</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
-          </select>
-          <select id="inv-filter-status" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
-            <option value="all">All Status</option>
-            <option value="Available">Available</option>
-            <option value="Deployed">Deployed</option>
-            <option value="Unserviceable">Unserviceable</option>
-            <option value="Out of stock">Out of stock</option>
-            <option value="Missing">Missing</option>
-          </select>
-          <select id="inv-filter-category" class="px-3 py-2 rounded-xl bg-white text-gray-800 text-sm font-medium hover:bg-gray-50 ring-1 ring-gray-200 outline-none">
-            <option value="all">All Categories</option>
-          </select>
+   <div class="bg-white shadow-lg rounded-2xl overflow-hidden ring-1 ring-gray-200/60 print:overflow-visible print:shadow-none print:ring-0 print:border-gray-200 print:border">
+      <div class="px-4 py-3 sm:px-6 flex items-center justify-between gap-4 bg-gradient-to-r from-blue-700 to-indigo-700">
+        <!-- Far Left: Title & Icon -->
+        <div class="flex items-center space-x-3 shrink-0 text-white">
+          <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20 shadow-inner print:shadow-none print:ring-0 print:border-gray-200 print:border">
+            <i class="fa-solid fa-boxes-stacked text-lg"></i>
+          </div>
+          <div class="hidden sm:block">
+            <h3 class="text-lg font-bold tracking-tight">Inventory Records</h3>
+            <p class="text-[10px] text-white/60 uppercase tracking-widest font-semibold">View and track items</p>
+          </div>
+        </div>
+        
+        <!-- Middle: Long, Flexible Search Bar -->
+        <div class="flex-1 max-w-4xl relative group">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <i class="fa-solid fa-magnifying-glass text-white text-sm group-focus-within:text-white/60 transition-colors"></i>
+          </div>
+          <input type="text" id="inv-search-input" oninput="handleInventorySearch(event)" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-white/10 bg-white/10 text-white placeholder-white/40 text-sm focus:ring-2 focus:ring-white/20 focus:border-white/20 focus:bg-white/15 outline-none transition-all shadow-sm print:shadow-none" placeholder="Search across all records...">
+        </div>
+        
+        <!-- Far Right: Filters & Icons Grouped -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <!-- Dropdown Filters Group -->
+          <div class="flex items-center gap-2">
+            <select id="inv-filter-stock" onchange="handleInventorySearch(event)" class="px-3 py-2 rounded-xl bg-white text-gray-900 text-xs font-bold border border-white/20 hover:bg-white/90 focus:ring-2 focus:ring-white/20 cursor-pointer transition-all outline-none print:ring-0 print:border-gray-200 print:border">
+              <option value="all" class="text-gray-800">All Stock</option>
+              <option value="in" class="text-gray-800">In Stock</option>
+              <option value="low" class="text-gray-800">Low Stock</option>
+              <option value="out" class="text-gray-800">Out of Stock</option>
+            </select>
+            <select id="inv-filter-status" onchange="handleInventorySearch(event)" class="px-3 py-2 rounded-xl bg-white text-gray-900 text-xs font-bold border border-white/20 hover:bg-white/90 focus:ring-2 focus:ring-white/20 cursor-pointer transition-all outline-none print:ring-0 print:border-gray-200 print:border">
+              <option value="all" class="text-gray-800">All Status</option>
+              <option value="Available" class="text-gray-800">Available</option>
+              <option value="Deployed" class="text-gray-800">Deployed</option>
+              <option value="Unserviceable" class="text-gray-800">Unserviceable</option>
+              <option value="Out of stock" class="text-gray-800">Out of stock</option>
+              <option value="Missing" class="text-gray-800">Missing</option>
+            </select>
+            <select id="inv-filter-category" onchange="handleInventorySearch(event)" class="px-3 py-2 rounded-xl bg-white text-gray-900 text-xs font-bold border border-white/20 hover:bg-white/90 focus:ring-2 focus:ring-white/20 cursor-pointer transition-all outline-none min-w-[120px] print:ring-0 print:border-gray-200 print:border">
+              <option value="all" class="text-gray-800">All Categories</option>
+            </select>
+          </div>
 
-          <button onclick="openInventoryCreateModal()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white text-indigo-700 text-sm font-semibold hover:bg-indigo-50 ring-1 ring-white/20">
-            <i class="fa-solid fa-plus"></i>
-            <span>Add Item</span>
-          </button>
-          <button onclick="loadInventory()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white/15 text-white text-sm font-medium hover:bg-white/20 ring-1 ring-white/20">
-            <i class="fa-solid fa-rotate-right"></i>
-            <span>Refresh</span>
-          </button>
+          <!-- Sheet Selector (Keeping it integrated) -->
+          <div class="flex items-center gap-1 bg-white/10 rounded-xl p-1 border border-white/20 shadow-sm print:shadow-none">
+            <select id="inv-sheet-select" class="px-2 py-1 rounded-lg bg-transparent text-white text-xs font-medium border-none focus:ring-0 cursor-pointer min-w-[110px] [&>option]:text-gray-900">
+              <option value="" class="text-gray-800">Loading sheets...</option>
+            </select>
+            <div class="flex items-center gap-2">
+              <button id="inv-new-sheet-btn" onclick="openCreateSheetModal()" class="pr-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Create New Sheet">
+                <i class="fa-solid fa-plus text-xs"></i>
+              </button>
+              <button id="inv-edit-columns-btn" onclick="openEditColumnsModal()" class="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Edit Columns">
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+              </button>
+              <button id="inv-delete-sheet-btn" onclick="openDeleteSheetModal()" class="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Delete Sheet">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Add Icon -->
+          <div class="flex items-center gap-3 pl-2">
+              <button onclick="openInventoryCreateModal()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-indigo-700 hover:bg-white/90 shadow-md transition-all active:scale-95" title="Add New Item">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+          </div>
         </div>
      </div>
-     <div class="overflow-x-auto">
-       <table class="min-w-full divide-y divide-gray-200">
-         <thead class="bg-gray-50">
-           <tr>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Project Name</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Item</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand and Model</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Serial</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Qty</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit Cost</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Acquired</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Disposal Countdown</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Procurement</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Person in Charge</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Remarks</th>
-             <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+     <!-- Filter & Action Strip -->
+     <div class="px-4 py-3 border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-4">
+       <div class="flex items-center gap-2 flex-wrap" id="active-filters-container">
+         <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Active Filters:</span>
+         <!-- Active Filter Tags will be injected here -->
+         <span id="no-filters-tag" class="text-xs text-gray-400 italic">None</span>
+       </div>
+       
+       <div class="flex items-center gap-3">
+         <!-- Density Toggle -->
+         <div class="flex items-center bg-gray-100 rounded-lg p-1" role="group" aria-label="Table Density">
+           <button onclick="setTableDensity('compact')" id="density-compact" class="px-2 py-1 text-[10px] font-bold rounded-md transition-all bg-white shadow-sm text-indigo-600" title="Compact View">
+             <i class="fa-solid fa-compress"></i>
+           </button>
+           <button onclick="setTableDensity('relaxed')" id="density-relaxed" class="px-2 py-1 text-[10px] font-bold rounded-md transition-all text-gray-500 hover:text-gray-700" title="Relaxed View">
+             <i class="fa-solid fa-expand"></i>
+           </button>
+         </div>
+       </div>
+     </div>
+
+     <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+       <table id="inventory-main-table" class="min-w-full divide-y divide-gray-200 table-fixed border-separate border-spacing-0">
+         <thead class="bg-gray-50/80 backdrop-blur-md sticky top-0 z-30">
+           <tr id="inventory-table-header">
+             <!-- Other headers will be injected dynamically -->
            </tr>
          </thead>
-         <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+         <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-100">
           <tr>
-            <td colspan="16" class="px-6 py-4 text-center text-sm text-gray-500">
-              <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading inventory data...
+            <td colspan="100%" class="px-6 py-12 text-center text-sm text-gray-500">
+              <div id="inventory-loader" class="flex flex-col items-center justify-center space-y-4">
+                <div class="h-10 w-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <p>Fetching records from server...</p>
+              </div>
             </td>
           </tr>
         </tbody>
        </table>
      </div>
+     
+     <!-- Skeleton Loader Template (Hidden) -->
+     <div id="inventory-skeleton" class="hidden">
+       <div class="animate-pulse space-y-4 p-6">
+         <div class="grid grid-cols-7 gap-4">
+           <div class="h-4 bg-gray-200 rounded col-span-1"></div>
+           <div class="h-4 bg-gray-200 rounded col-span-2"></div>
+           <div class="h-4 bg-gray-200 rounded col-span-1"></div>
+           <div class="h-4 bg-gray-200 rounded col-span-1"></div>
+           <div class="h-4 bg-gray-200 rounded col-span-1"></div>
+           <div class="h-4 bg-gray-200 rounded col-span-1"></div>
+         </div>
+         <div class="space-y-3">
+           <div class="grid grid-cols-7 gap-4 border-t pt-4">
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-2"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+           </div>
+           <div class="grid grid-cols-7 gap-4 border-t pt-4">
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-2"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+           </div>
+           <div class="grid grid-cols-7 gap-4 border-t pt-4">
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-2"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+             <div class="h-8 bg-gray-100 rounded col-span-1"></div>
+           </div>
+         </div>
+       </div>
+     </div>
+
+     <div id="inventory-card-view" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+       <!-- Cards will be injected dynamically on mobile -->
+     </div>
      <div class="px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border-t border-gray-200/70">
-       <div id="inv-page-info" class="text-sm text-gray-600">Page 1 of 1</div>
+       <div id="inv-page-info" class="text-sm text-gray-600 print:text-gray-700">Page 1 of 1</div>
        <div class="flex items-center justify-end space-x-2">
          <button id="inv-prev-btn" class="inline-flex items-center space-x-2 px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
            <i class="fa-solid fa-chevron-left text-xs"></i>
            <span>Prev</span>
          </button>
+         <div id="inv-page-numbers" class="flex items-center gap-1">
+           <!-- Page numbers will be injected here -->
+         </div>
          <button id="inv-next-btn" class="inline-flex items-center space-x-2 px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
            <span>Next</span>
            <i class="fa-solid fa-chevron-right text-xs"></i>
@@ -86,11 +175,264 @@
    </div>
 </div>
 
-<div id="inventoryItemModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
-  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-    <div class="fixed inset-0 bg-gray-900/60 transition-opacity" aria-hidden="true" onclick="closeModal('inventoryItemModal')"></div>
-    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-    <div class="relative z-50 inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full ring-1 ring-gray-200/70">
+<!-- Delete Sheet Modal -->
+<div id="deleteSheetModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('deleteSheetModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-sm ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-3">
+             <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <i class="fa-solid fa-trash-can text-red-600"></i>
+             </div>
+             <h3 class="text-lg leading-6 font-semibold text-gray-900">Delete Sheet</h3>
+          </div>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('deleteSheetModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="mt-2 space-y-3">
+          <p class="text-sm text-gray-700">
+            Are you sure you want to delete sheet <span id="delete-sheet-name" class="font-semibold text-gray-900"></span>?
+          </p>
+          <p class="text-sm text-gray-600">Type <span class="font-semibold">DELETE</span> to confirm.</p>
+          <input type="hidden" id="delete-sheet-target">
+          <input type="text" id="delete-sheet-confirm" oninput="deleteSheetValidationChanged()" class="w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-red-500/30 focus:border-red-500" placeholder="DELETE">
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <button id="submit-delete-sheet-btn" type="button" onclick="submitDeleteSheet()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm transition-all" disabled>
+          Delete Sheet
+        </button>
+        <button type="button" onclick="closeModal('deleteSheetModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Create Sheet Modal -->
+<div id="createSheetModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('createSheetModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-lg ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900">Create New Sheet</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('createSheetModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Sheet Name</label>
+            <input type="text" id="new-sheet-name" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" placeholder="e.g. IT Equipment">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Columns</label>
+            <div id="new-sheet-columns-container" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+              <!-- Default columns will be injected here -->
+            </div>
+            <button type="button" onclick="addNewSheetColumnInput()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center space-x-1">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>Add Custom Column</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2 print:bg-white">
+        <button type="button" onclick="submitCreateSheet()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl transition-all shadow-sm hover:bg-indigo-700 print:shadow-none">
+          Create Sheet
+        </button>
+        <button type="button" onclick="closeModal('createSheetModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm print:shadow-none">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Columns Modal -->
+<div id="editColumnsModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('editColumnsModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-lg ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900">Edit Sheet Columns</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('editColumnsModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">Modify column names for the current sheet. Changes will be saved immediately.</p>
+        <div id="edit-columns-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+          <!-- Columns will be loaded here -->
+          <div class="text-center py-4 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading columns...</div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row items-center justify-between gap-3">
+        <button type="button" onclick="event.stopPropagation(); promptAddNewColumn()" class="inline-flex justify-center items-center rounded-xl border border-transparent px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-semibold hover:bg-indigo-100 transition-all">
+          <i class="fa-solid fa-plus-circle mr-2"></i> Add Column
+        </button>
+        <button type="button" onclick="closeModal('editColumnsModal')" class="inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Column Modal -->
+<div id="addColumnModal" class="fixed inset-0 z-[999996] overflow-y-auto hidden" aria-labelledby="add-column-modal-title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <!-- Overlay with higher z-index than backdrop and blur effect -->
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('addColumnModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-sm ring-1 ring-black/5 z-[999996]">
+      <div class="bg-white px-6 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-3">
+             <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-plus-circle text-indigo-600"></i>
+             </div>
+             <h3 class="text-xl font-bold text-gray-900" id="add-column-modal-title">Add New Column</h3>
+          </div>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" onclick="closeModal('addColumnModal')">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-5">
+          <div>
+            <label for="new-column-name-input" class="block text-sm font-semibold text-gray-700 mb-2">Column Name</label>
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <i class="fa-solid fa-heading text-gray-400 text-sm group-focus-within:text-indigo-500 transition-colors"></i>
+                </div>
+                <input type="text" id="new-column-name-input" 
+                  class="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" 
+                  placeholder="e.g. Serial Number, Notes, etc.">
+            </div>
+            <p class="mt-3 text-[11px] text-gray-500 leading-relaxed italic">
+              <i class="fa-solid fa-circle-info mr-1"></i> The new column will be added to the end of the current sheet.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
+        <button type="button" id="submit-add-column-btn" onclick="submitAddColumn()" 
+          class="inline-flex items-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 active:scale-95 transition-all">
+          <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Column
+        </button>
+        <button type="button" onclick="closeModal('addColumnModal')" 
+          class="inline-flex items-center px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="deleteColumnModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('deleteColumnModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-sm ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-3">
+             <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+             </div>
+             <h3 class="text-lg leading-6 font-semibold text-gray-900">Delete Column</h3>
+          </div>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('deleteColumnModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="mt-2">
+          <p class="text-sm text-gray-500">
+            Are you sure you want to delete column <span id="delete-col-name" class="font-bold text-gray-900"></span>? 
+            This action cannot be undone and will delete all data in this column.
+          </p>
+          <input type="hidden" id="delete-col-target">
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <button type="button" onclick="submitDeleteColumn()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+          Delete Column
+        </button>
+        <button type="button" onclick="closeModal('deleteColumnModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Rename Column Modal -->
+<div id="renameColumnModal" class="fixed inset-0 z-[999996] overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeRenameColumnModal()"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-lg ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center space-x-3">
+             <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
+             </div>
+             <h3 class="text-lg leading-6 font-semibold text-gray-900" id="modal-title">Rename Column Name</h3>
+          </div>
+          <button type="button" class="bg-white rounded-full p-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors focus:outline-none" onclick="closeRenameColumnModal()">
+            <span class="sr-only">Close</span>
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div class="space-y-5 pt-5">
+          <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <label for="rename-col-old" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Current Name</label>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-tag text-gray-400 text-sm"></i>
+                <input type="text" id="rename-col-old" readonly class="block w-full bg-transparent border-none p-0 text-gray-700 font-medium focus:ring-0 sm:text-sm cursor-not-allowed">
+            </div>
+          </div>
+          <div>
+            <label for="rename-col-new" class="block text-sm font-medium text-gray-700 mb-1.5 pt-4">New Name</label>
+            <div class="relative rounded-xl shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <i class="fa-solid fa-i-cursor text-gray-400 text-sm"></i>
+                </div>
+                <input type="text" id="rename-col-new" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-xl py-2.5" placeholder="Enter new column name">
+            </div>
+            <p class="mt-2 text-xs text-gray-500">This will update the column header across the entire sheet.</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+        <button type="button" onclick="submitRenameColumn()" class="w-full inline-flex justify-center items-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-0 sm:w-auto sm:text-sm transition-all">
+          <i class="fa-solid fa-check mr-2"></i> Rename
+        </button>
+        <button type="button" onclick="closeRenameColumnModal()" class="mt-3 w-full inline-flex justify-center items-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="inventoryItemModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('inventoryItemModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-4xl ring-1 ring-gray-200/70 z-[999996]">
       <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg leading-6 font-semibold text-gray-900" id="inventory-modal-title">Add Item</h3>
@@ -99,79 +441,18 @@
           </button>
         </div>
         <input type="hidden" id="inv-item-id">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Project Name</label>
-            <input type="text" id="inv-project" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Category</label>
-            <input type="text" id="inv-category" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Item</label>
-            <input type="text" id="inv-item" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Brand and Model</label>
-            <input type="text" id="inv-brandmodel" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Serial</label>
-            <input type="text" id="inv-serial" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Qty</label>
-            <input type="number" id="inv-qty" min="0" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Unit</label>
-            <input type="text" id="inv-unit" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Unit Cost</label>
-            <input type="number" id="inv-unitcost" min="0" step="0.01" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Date Acquired (Year)</label>
-            <input type="number" id="inv-dateacquired" min="1900" max="2099" placeholder="YYYY" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Procurement</label>
-            <input type="text" id="inv-procurementproject" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Person in Charge</label>
-            <input type="text" id="inv-personincharge" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Location</label>
-            <input type="text" id="inv-location" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Status</label>
-            <select id="inv-status" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-              <option value="Available">Available</option>
-              <option value="Deployed">Deployed</option>
-              <option value="Unserviceable">Unserviceable</option>
-              <option value="Out of stock">Out of stock</option>
-              <option value="Missing">Missing</option>
-            </select>
-          </div>
-          <div class="md:col-span-2 lg:col-span-2">
-            <label class="block text-sm font-medium text-gray-700">Remarks</label>
-            <input type="text" id="inv-remarks" class="mt-1 w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
-          </div>
+        <div id="inventory-dynamic-fields" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 print:grid-cols-1 print:md:grid-cols-2 print:lg:grid-cols-3">
+          <!-- Dynamic fields will be injected here -->
         </div>
       </div>
-      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-        <button type="button" onclick="submitInventoryItem()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2 print:bg-white">
+        <button id="inventory-save-btn" type="button" onclick="submitInventoryItem()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-semibold text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">
           <span class="inline-flex items-center space-x-2">
             <i class="fa-solid fa-floppy-disk"></i>
             <span id="inventory-save-btn-label">Save</span>
           </span>
         </button>
-        <button type="button" onclick="closeModal('inventoryItemModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+        <button type="button" onclick="closeModal('inventoryItemModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm print:shadow-none">
           Cancel
         </button>
       </div>
@@ -179,11 +460,11 @@
   </div>
 </div>
 
-<div id="inventoryDeleteModal" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
-  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-    <div class="fixed inset-0 bg-gray-900/60 transition-opacity" aria-hidden="true" onclick="closeModal('inventoryDeleteModal')"></div>
-    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-    <div class="relative z-50 inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ring-1 ring-gray-200/70">
+<div id="inventoryDeleteModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('inventoryDeleteModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-lg ring-1 ring-gray-200/70 z-[999996]">
       <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
         <div class="flex items-center justify-between">
           <h3 class="text-lg leading-6 font-semibold text-gray-900">Confirm Deletion</h3>
@@ -198,17 +479,17 @@
             <span id="inv-delete-name" class="font-semibold text-gray-900"></span>
           </p>
           <p class="text-sm text-gray-600">Type <span class="font-semibold">DELETE</span> to confirm.</p>
-          <input id="inv-delete-confirm" type="text" oninput="inventoryDeleteValidationChanged()" class="w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-red-500/30 focus:border-red-500" placeholder="DELETE">
+          <input type="text" id="inv-delete-confirm" type="text" oninput="inventoryDeleteValidationChanged()" class="w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-red-500/30 focus:border-red-500 print:ring-0 print:border-gray-200 print:border" placeholder="DELETE">
         </div>
       </div>
-      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-        <button id="inventory-delete-confirm-btn" type="button" onclick="confirmInventoryDelete()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-semibold text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm" disabled>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2 print:bg-white">
+        <button id="inventory-delete-confirm-btn" type="button" onclick="confirmInventoryDelete()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-semibold text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm print:shadow-none" disabled>
           <span class="inline-flex items-center space-x-2">
             <i class="fa-solid fa-trash"></i>
             <span>Delete</span>
           </span>
         </button>
-        <button type="button" onclick="closeModal('inventoryDeleteModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+        <button type="button" onclick="closeModal('inventoryDeleteModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm print:shadow-none">
           Cancel
         </button>
       </div>
@@ -237,7 +518,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse print:bg-white">
         <button type="button" onclick="submitStockAdjustment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">
           Confirm Adjustment
         </button>

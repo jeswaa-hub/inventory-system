@@ -1,530 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html class="print:text-[11pt]">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="./styles.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <title>Inventory Management System</title>
     <style>
-      :root {
-        --primary: #1e40af;
-        --secondary: #3b82f6;
-        --accent: #f59e0b;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-        --dark: #1f2937;
-        --light: #f8fafc;
-      }
-      
-      .nav-item {
-        position: relative;
-        transition: all 0.3s ease;
-        border-top-left-radius: 30px;
-        border-bottom-left-radius: 30px;
-        margin-right: 0;
-      }
-      
-      .nav-item.active {
-        background-color: #f9fafb; /* bg-gray-50 */
-        color: #1e293b; /* text-slate-800 */
-        box-shadow: none;
+      /* High-Performance Top Progress Bar */
+      #nprogress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(to right, #6366f1, #a855f7);
+        z-index: 999999;
+        transform: translateX(-100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .nav-item.active .nav-icon {
-        background-color: #eff6ff; /* bg-blue-50 */
-        color: #2563eb; /* text-blue-600 */
+      /* Skeleton Pulse Animation */
+      @keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
       }
-      
-      .nav-item.active .nav-label {
-        color: #1e293b;
-        font-weight: 600;
-      }
-
-      /* Inverted Border Radius - Top Curve */
-      .nav-item.active::before {
-        content: '';
-        position: absolute;
-        top: -40px;
-        right: 0;
-        width: 40px;
-        height: 40px;
-        background-color: transparent;
-        border-radius: 50%;
-        box-shadow: 20px 20px 0 0 #f9fafb;
-        pointer-events: none;
-        z-index: 10;
+      .animate-skeleton {
+        animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
 
-      /* Inverted Border Radius - Bottom Curve */
-      .nav-item.active::after {
-        content: '';
-        position: absolute;
-        bottom: -40px;
-        right: 0;
-        width: 40px;
-        height: 40px;
-        background-color: transparent;
-        border-radius: 50%;
-        box-shadow: 20px -20px 0 0 #f9fafb;
-        pointer-events: none;
-        z-index: 10;
-      }
-      
-      .nav-item:hover:not(.active) {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-top-left-radius: 30px;
-        border-bottom-left-radius: 30px;
-      }
-      
-      #sidebar.sidebar-collapsed .sidebar-brand-text,
-      #sidebar.sidebar-collapsed .sidebar-user-text,
-      #sidebar.sidebar-collapsed .nav-label {
+      .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
-
-      #sidebar.sidebar-collapsed nav {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item {
-        justify-content: center;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item:hover {
-        transform: none;
-      }
-
-      #sidebar.sidebar-collapsed .nav-icon {
-        margin-right: 0 !important;
-      }
-
-      #sidebar.sidebar-collapsed .sidebar-header-toggle {
-        justify-content: center;
-      }
-      
-      /* Fix for collapsed sidebar active item */
-      #sidebar.sidebar-collapsed .nav-item {
-        border-radius: 12px !important;
-        margin: 0 !important;
-        width: 100%;
-        justify-content: center;
-        padding: 0.75rem !important;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item.active {
-        background-color: rgba(59, 130, 246, 0.15); /* Light blue bg */
-        box-shadow: none;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item.active .nav-icon {
-        background: none;
-        color: #60a5fa;
-        box-shadow: none;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item.active::before,
-      #sidebar.sidebar-collapsed .nav-item.active::after {
-        display: none !important;
-      }
-
-      #sidebar.sidebar-collapsed .nav-item:hover:not(.active) {
-        transform: none;
-        background-color: rgba(255, 255, 255, 0.05);
-      }
-
-      .stat-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #e2e8f0;
-        transition: all 0.3s ease;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-      }
-      
-      .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-      }
-      
-      .gradient-bg {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-      }
-      
-      .btn-primary {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        transition: all 0.3s ease;
-      }
-      
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-      }
-      
-      .animate-float {
-        animation: float 3s ease-in-out infinite;
-      }
-      
-      @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-6px); }
-      }
-
-      .reveal {
-        animation: reveal 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-      }
-
-      .reveal-delay-1 { animation-delay: 80ms; }
-      .reveal-delay-2 { animation-delay: 140ms; }
-      .reveal-delay-3 { animation-delay: 200ms; }
-      .reveal-delay-4 { animation-delay: 260ms; }
-
-      @keyframes reveal {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* Mobile Responsive Fixes */
-      @media (max-width: 1024px) {
-        #sidebar {
-          position: fixed;
-          z-index: 50;
-          height: 100vh;
-        }
-        
-        /* Ensure overlay when sidebar is open */
-        #sidebar:not(.-translate-x-full)::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: -1;
-          width: 100vw;
-          height: 100vh;
-          left: 256px; /* sidebar width */
-        }
-      }
-
-      @media (max-width: 640px) {
-        .stat-card {
-          padding: 1rem;
-        }
-        
-        .stat-card .text-3xl {
-          font-size: 1.5rem;
-        }
-        
-        /* Better table scrolling on mobile */
-        .overflow-x-auto {
-          -webkit-overflow-scrolling: touch;
-          padding-bottom: 1px; /* Fix scrollbar clipping */
-        }
-        
-        /* Adjust chat widget position */
-        #chat-widget {
-          bottom: 1rem;
-          right: 1rem;
-        }
-        
-        #chat-container {
-          width: calc(100vw - 2rem);
-          max-height: 60vh;
-        }
-      }
-      
-      .glass-effect {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
-      
-      ::-webkit-scrollbar { width: 5px; height: 5px; }
-      ::-webkit-scrollbar-track { background: #f1f1f1; }
-      ::-webkit-scrollbar-thumb { 
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 10px; 
-      }
-      ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
-      
-      /* Mobile menu animation */
-      .mobile-menu-enter {
-        transform: translateX(-100%);
-      }
-      .mobile-menu-enter-active {
-        transform: translateX(0);
-        transition: transform 300ms ease-in-out;
-      }
-      .mobile-menu-exit {
-        transform: translateX(0);
-      }
-      .mobile-menu-exit-active {
-        transform: translateX(-100%);
-        transition: transform 300ms ease-in-out;
-      }
-
-      @media print {
-        @page {
-          margin: 12mm;
-          size: A4 portrait;
-        }
-
-        #sidebar, header, #mobile-menu-btn, .print\:hidden {
-          display: none !important;
-        }
-
-        .print\:block {
-          display: block !important;
-        }
-
-        #chat-widget {
-          display: none !important;
-        }
-
-        .printing-reports #section-dashboard,
-        .printing-reports #section-inventory,
-        .printing-reports #section-audit {
-          display: none !important;
-        }
-
-        .printing-reports #section-reports {
-          display: block !important;
-        }
-        
-        body, html, .flex-1, main {
-          height: auto !important;
-          overflow: visible !important;
-          width: 100% !important;
-          background-color: white !important;
-        }
-
-        html {
-          font-size: 11pt !important;
-        }
-
-        body {
-          color: #111827 !important;
-          -webkit-font-smoothing: antialiased !important;
-          text-rendering: optimizeLegibility !important;
-          font-family: Inter, Roboto, "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-        }
-        
-        main {
-          padding: 0 !important;
-          margin: 0 !important;
-        }
-
-        .printing-reports main {
-          padding-bottom: 2.2cm !important;
-          padding-top: 1.9cm !important;
-        }
-        
-        .max-w-7xl {
-          max-width: none !important;
-          padding: 0 !important;
-        }
-
-        .printing-reports .max-w-7xl {
-          max-width: 190mm !important;
-          margin-left: auto !important;
-          margin-right: auto !important;
-          padding: 0 !important;
-        }
-
-        .overflow-hidden {
-          overflow: visible !important;
-        }
-
-        /* Reset styles for print legibility */
-        .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm, .shadow {
-          box-shadow: none !important;
-        }
-
-        .ring-1, .ring-2, .ring {
-          box-shadow: none !important;
-          border: 1px solid #e5e7eb !important;
-        }
-
-        .bg-gray-50, .bg-gray-100, .bg-slate-900 {
-          background-color: white !important;
-        }
-
-        /* Ensure text is dark and readable */
-        .text-gray-500, .text-gray-400 {
-          color: #4b5563 !important; /* darker gray for print */
-        }
-
-        .text-emerald-600, .text-amber-600, .text-rose-600 {
-          color: #111827 !important;
-        }
-
-        /* Layout adjustments */
-        .grid-cols-1, .sm\:grid-cols-2, .lg\:grid-cols-4 {
-          display: grid !important;
-        }
-
-        /* Force single column for main layout sections to avoid squeezing */
-        .lg\:grid-cols-2 {
-          grid-template-columns: 1fr !important;
-          gap: 12mm !important;
-        }
-
-        /* Keep summary cards in a row but ensure they fit */
-        #reports-summary-cards {
-          display: grid !important;
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 6mm !important;
-        }
-
-        /* Prevent breaking inside important elements */
-        .rounded-3xl, .rounded-2xl, tr, li {
-          break-inside: avoid;
-        }
-
-        .printing-reports #reports-content {
-          display: block !important;
-        }
-
-        .printing-reports #reports-content .rounded-3xl,
-        .printing-reports #reports-content .rounded-2xl {
-          border-radius: 0 !important;
-        }
-
-        .printing-reports #reports-content .shadow-xl,
-        .printing-reports #reports-content .shadow-lg,
-        .printing-reports #reports-content .shadow-md,
-        .printing-reports #reports-content .shadow-sm,
-        .printing-reports #reports-content .shadow {
-          box-shadow: none !important;
-        }
-
-        .printing-reports #reports-content .ring-1,
-        .printing-reports #reports-content .ring-2,
-        .printing-reports #reports-content .ring {
-          border: 1px solid #d1d5db !important;
-          box-shadow: none !important;
-        }
-
-        .printing-reports #reports-lowstock-card {
-          break-before: page !important;
-        }
-
-        .printing-reports #reports-activity-card {
-          break-before: page !important;
-        }
-
-        #reports-print-header {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          background: white !important;
-          padding: 0 12mm !important;
-          border-bottom: 1px solid #d1d5db !important;
-        }
-
-        .printing-reports #reports-print-header {
-          display: block !important;
-        }
-
-        /* Better table styling for print */
-        table {
-          width: 100% !important;
-          border-collapse: collapse !important;
-        }
-
-        .printing-reports table {
-          font-size: 10.5pt !important;
-          border: 1px solid #d1d5db !important;
-        }
-
-        thead {
-          display: table-header-group !important;
-        }
-
-        .printing-reports #reports-content .whitespace-nowrap {
-          white-space: normal !important;
-        }
-
-        a, a:visited {
-          color: #111827 !important;
-          text-decoration: none !important;
-        }
-
-        th, td {
-          padding: 0.4rem 0.5rem !important;
-          border-bottom: 1px solid #e5e7eb !important;
-          vertical-align: top !important;
-          word-break: break-word !important;
-        }
-
-        .printing-reports th, .printing-reports td {
-          border-left: 1px solid #e5e7eb !important;
-          border-right: 1px solid #e5e7eb !important;
-        }
-
-        thead th {
-          background-color: #f3f4f6 !important;
-          color: #111827 !important;
-          font-weight: 700 !important;
-          border-bottom: 1px solid #d1d5db !important;
-        }
-
-        .printing-reports tbody tr:nth-child(even) td {
-          background-color: #f9fafb !important;
-        }
-
-        .printing-reports #reports-lowstock-card th:nth-child(3),
-        .printing-reports #reports-lowstock-card td:nth-child(3) {
-          text-align: right !important;
-          width: 18mm !important;
-        }
-
-        .printing-reports #reports-lowstock-card th:nth-child(2),
-        .printing-reports #reports-lowstock-card td:nth-child(2) {
-          width: 42mm !important;
-        }
-
-        .printing-reports #reports-lowstock-card th:nth-child(4),
-        .printing-reports #reports-lowstock-card td:nth-child(4) {
-          width: 45mm !important;
-        }
-
-        .printing-reports #reports-lowstock-card td:nth-child(1) {
-          font-weight: 600 !important;
-          color: #111827 !important;
-        }
-
-        #reports-print-footer {
-          position: fixed !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
-          padding: 0.35cm 1cm !important;
-          border-top: 1px solid #e5e7eb !important;
-          background: white !important;
-        }
-
-        .print-page::after {
-          content: counter(page);
-        }
-        
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     </style>
   </head>
-  <body class="bg-gray-100 font-sans h-screen flex overflow-hidden">
+  <body class="bg-gray-100 font-sans h-screen flex print:h-auto print:overflow-visible print:w-full print:bg-white print:text-gray-900 print:bg-white overflow-hidden">
+    <!-- Top Progress Bar -->
+    <div id="nprogress-bar"></div>
+
+    <!-- Global Loading Overlay -->
+    <div id="global-loader" class="fixed inset-0 z-[999999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center transition-all duration-500 opacity-0 pointer-events-none">
+      <div class="flex flex-col items-center gap-6 text-center">
+        <div class="relative">
+          <!-- Pulsing Logo Background -->
+          <div class="absolute inset-0 bg-indigo-500/20 rounded-full blur-2xl animate-pulse"></div>
+          <!-- Spinner -->
+          <div class="w-20 h-20 border-4 border-white/10 border-t-indigo-500 rounded-full animate-spin relative z-10"></div>
+          <!-- Central Icon/Logo Placeholder -->
+          <div class="absolute inset-0 flex items-center justify-center z-20">
+            <i class="fa-solid fa-layer-group text-2xl text-white animate-bounce"></i>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <h3 id="loader-text" class="text-xl font-bold text-white tracking-tight">Initializing System...</h3>
+          <p id="loader-subtext" class="text-indigo-200/70 text-sm font-medium">Securing your connection to GovNet</p>
+        </div>
+        <!-- Error State (Hidden) -->
+        <div id="loader-error" class="hidden flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+           <div class="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center text-rose-500">
+             <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+           </div>
+           <p class="text-rose-200 text-sm">Connection taking longer than expected.</p>
+           <button onclick="window.location.reload()" class="px-6 py-2 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors">Retry Connection</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Syncing Toast (Micro-feedback) -->
+    <div id="sync-toast" class="fixed top-6 right-6 z-[999997] transform translate-x-full transition-all duration-500 pointer-events-none">
+       <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3">
+         <div class="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></div>
+         <span class="text-xs font-bold tracking-wider uppercase" id="sync-toast-text">Syncing with Sheets...</span>
+       </div>
+    </div>
     <!-- Security Modal -->
-    <div id="security-modal" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-4">
-      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+    <div id="security-modal" class="fixed inset-0 z-[999998] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 print:shadow-none">
+      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all print:shadow-none">
         <div class="p-8">
           <div class="text-center mb-8">
-            <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm ring-1 ring-blue-100">
+            <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm print:ring-0 print:border-gray-200 print:border">
               <i class="fa-solid fa-shield-halved text-2xl"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900">Security Access</h2>
@@ -556,12 +114,12 @@
       </div>
     </div>
 
-    <div id="global-loading" class="hidden fixed inset-0 z-[100]">
-      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+    <div id="global-loading" class="hidden fixed inset-0 z-[999997]">
+      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
       <div class="absolute inset-0 flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl bg-white/95 shadow-xl border border-white/30 p-6">
           <div class="flex items-center gap-4">
-            <div class="h-12 w-12 rounded-xl gradient-bg flex items-center justify-center shadow-md">
+            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md print:shadow-none print:ring-0 print:border-gray-200 print:border">
               <div class="h-6 w-6 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
             </div>
             <div class="min-w-0">
@@ -574,7 +132,7 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <div class="lg:hidden fixed top-4 left-4 z-30">
+    <div class="lg:hidden fixed top-4 left-4 z-30 print:hidden">
       <button id="mobile-menu-btn" class="p-2 rounded-md bg-blue-600 text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -583,114 +141,136 @@
     </div>
 
     <!-- Sidebar -->
-    <div id="sidebar" class="bg-slate-900 w-64 shadow-xl flex flex-col h-full flex-shrink-0 z-20 lg:relative fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
-      <div class="text-white border-b border-blue-500">
-        <div class="sidebar-header-toggle px-4 pt-4 pb-2 flex justify-end">
-          <button id="sidebar-collapse-btn" class="hidden lg:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300" type="button" aria-label="Toggle sidebar">
-            <svg id="sidebar-collapse-icon" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-          </button>
+    <aside id="sidebar" class="bg-[#0f172a] w-64 [&.collapsed]:w-20 border-r border-white/5 shadow-2xl flex flex-col h-full flex-shrink-0 z-20 lg:relative fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-[transform,width] duration-300 group/sidebar print:hidden">
+      <!-- Sidebar Header -->
+      <div class="px-6 py-8 flex items-center justify-between sidebar-header">
+        <div class="flex items-center gap-3 sidebar-brand overflow-hidden transition-all duration-300 group-[.collapsed]/sidebar:opacity-0 group-[.collapsed]/sidebar:w-0">
+          <div class="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center ring-1 ring-blue-500/30 shadow-inner">
+            <i class="fa-solid fa-cube text-blue-500 text-lg"></i>
+          </div>
+          <div class="sidebar-brand-text whitespace-nowrap">
+            <div class="text-[10px] font-medium text-blue-400/60 uppercase tracking-[0.2em] leading-none mb-1">NBP/GovNet</div>
+            <h1 class="text-lg font-bold text-white tracking-tight leading-none">Inventory</h1>
+          </div>
+        </div>
+        <button id="sidebar-collapse-btn" class="hidden lg:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all duration-300" aria-label="Toggle Sidebar">
+          <i id="sidebar-collapse-icon" class="fa-solid fa-chevron-left text-xs transition-transform duration-300"></i>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto px-3 space-y-8 scrollbar-hide">
+        <!-- GENERAL GROUP -->
+        <div class="space-y-2">
+          <h3 class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] group-[.collapsed]/sidebar:hidden">General</h3>
+          <ul class="space-y-1">
+            <li>
+              <a href="#dashboard" onclick="loadSection('dashboard'); return false;" id="nav-dashboard" 
+                class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-300 relative group/nav"
+                aria-label="Dashboard">
+                <i class="fa-solid fa-chart-pie text-[20px] w-6 text-center"></i>
+                <span class="font-medium text-sm group-[.collapsed]/sidebar:hidden whitespace-nowrap">Dashboard</span>
+                <!-- Active Indicator -->
+                <div class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full opacity-0 transition-all duration-300 group-[.active]/nav:opacity-100"></div>
+                <!-- Tooltip for collapsed -->
+                <div class="absolute left-16 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-[.collapsed]/sidebar:group-hover/nav:opacity-100 transition-opacity whitespace-nowrap z-50">Dashboard</div>
+              </a>
+            </li>
+            <li>
+              <a href="#inventory" onclick="loadSection('inventory'); return false;" id="nav-inventory" 
+                class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-300 relative group/nav"
+                aria-label="Inventory">
+                <i class="fa-solid fa-boxes-stacked text-[20px] w-6 text-center"></i>
+                <span class="font-medium text-sm group-[.collapsed]/sidebar:hidden whitespace-nowrap">Inventory</span>
+                <div class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full opacity-0 transition-all duration-300 group-[.active]/nav:opacity-100"></div>
+                <div class="absolute left-16 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-[.collapsed]/sidebar:group-hover/nav:opacity-100 transition-opacity whitespace-nowrap z-50">Inventory</div>
+              </a>
+            </li>
+          </ul>
         </div>
 
-        <div class="px-6 pb-5 flex items-center space-x-3 sidebar-brand">
-          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-            </svg>
-          </div>
-          <div class="sidebar-brand-text">
-            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-0.5">NBP/GovNet</div>
-            <h1 class="text-xl font-extrabold text-white tracking-tight leading-none">Inventory</h1>
-          </div>
+        <!-- DOCUMENTS GROUP -->
+        <div class="space-y-2">
+          <h3 class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] group-[.collapsed]/sidebar:hidden">Documents</h3>
+          <ul class="space-y-1">
+            <li>
+              <a href="#reports" onclick="loadSection('reports'); return false;" id="nav-reports" 
+                class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-300 relative group/nav"
+                aria-label="Reports">
+                <i class="fa-solid fa-file-lines text-[20px] w-6 text-center"></i>
+                <span class="font-medium text-sm group-[.collapsed]/sidebar:hidden whitespace-nowrap">Reports</span>
+                <div class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full opacity-0 transition-all duration-300 group-[.active]/nav:opacity-100"></div>
+                <div class="absolute left-16 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-[.collapsed]/sidebar:group-hover/nav:opacity-100 transition-opacity whitespace-nowrap z-50">Reports</div>
+              </a>
+            </li>
+            <li>
+              <a href="#par" onclick="loadSection('par'); return false;" id="nav-par" 
+                class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-300 relative group/nav"
+                aria-label="PAR Form">
+                <i class="fa-solid fa-file-signature text-[20px] w-6 text-center"></i>
+                <span class="font-medium text-sm group-[.collapsed]/sidebar:hidden whitespace-nowrap">PAR Form</span>
+                <div class="active-indicator absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full opacity-0 transition-all duration-300 group-[.active]/nav:opacity-100"></div>
+                <div class="absolute left-16 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-[.collapsed]/sidebar:group-hover/nav:opacity-100 transition-opacity whitespace-nowrap z-50">PAR Form</div>
+              </a>
+            </li>
+          </ul>
         </div>
-      </div>
-      
-      <nav class="flex-1 overflow-y-auto py-6 pl-4 pr-0">
-        <ul class="space-y-4">
-          <li>
-            <a href="#" onclick="loadSection('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300 active">
-              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                </svg>
-              </div>
-              <span class="nav-label font-medium">Dashboard</span>
-            </a>
-          </li>
-          <li>
-            <a href="#" onclick="loadSection('inventory')" id="nav-inventory" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300">
-              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-              </div>
-              <span class="nav-label font-medium">Inventory</span>
-            </a>
-          </li>
-          <li>
-            <a href="#" onclick="loadSection('reports')" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-blue-100/90 hover:text-white transition-all duration-300">
-              <div class="nav-icon w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mr-3 backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-              </div>
-              <span class="nav-label font-medium">Reports</span>
-            </a>
-          </li>
-        </ul>
       </nav>
-    </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-4 border-t border-white/5 sidebar-footer">
+        <button onclick="handleLogout()" 
+          class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300 relative group/logout"
+          aria-label="Logout">
+          <i class="fa-solid fa-right-from-bracket text-[20px] w-6 text-center"></i>
+          <span class="font-medium text-sm group-[.collapsed]/sidebar:hidden whitespace-nowrap">Logout</span>
+          <!-- Tooltip for collapsed -->
+          <div class="absolute left-16 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-[.collapsed]/sidebar:group-hover/logout:opacity-100 transition-opacity whitespace-nowrap z-50">Logout</div>
+        </button>
+      </div>
+    </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col overflow-hidden bg-gray-50/50 relative lg:ml-0">
+    <div class="flex-1 flex flex-col overflow-hidden bg-gray-50/50 relative lg:ml-0 print:bg-white">
       <!-- Header -->
-      <header class="glass-effect shadow-sm border-b border-gray-200/50 px-6 py-4 sticky top-0 z-10">
+      <header class="shadow-sm border-b border-gray-200/50 px-6 py-4 sticky top-0 z-30 print:hidden print:shadow-none bg-white/80 backdrop-blur-md">
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-xl font-semibold text-gray-800" id="page-title">Dashboard Overview</h1>
             <p class="text-sm text-gray-500 mt-1">Welcome back! Here's your inventory summary</p>
           </div>
           <div class="flex items-center space-x-4">
-            <div class="relative">
-              <input id="global-search" type="text" placeholder="Search..." autocomplete="off" class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300 w-64">
-              <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-            </div>
             <button onclick="refreshAllData()" class="p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300 group mr-1" title="Sync Data">
-              <i class="fa-solid fa-arrows-rotate text-gray-600 group-hover:rotate-180 transition-transform duration-700"></i>
+              <i id="refresh-icon" class="fa-solid fa-arrows-rotate text-gray-600 group-hover:rotate-180 transition-transform duration-700"></i>
             </button>
-            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer">
-              <span class="text-sm">A</span>
-            </div>
           </div>
         </div>
       </header>
 
-      <main class="flex-1 overflow-y-auto p-6">
-        <div class="max-w-7xl mx-auto">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 relative print:h-auto print:overflow-visible print:w-full print:bg-white print:p-0 print:m-0">
+        <div id="main-content">
+        <div class="max-w-[98%] mx-auto print:max-w-none print:p-0">
           <!-- DASHBOARD SECTION -->
-          <div id="section-dashboard">
+          <div id="section-dashboard" class="print:hidden">
             <div class="flex justify-center items-center h-64">
               <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           </div>
 
           <!-- INVENTORY SECTION -->
-          <div id="section-inventory" class="hidden"></div>
+          <div id="section-inventory" class="hidden print:hidden"></div>
 
           <!-- REPORTS SECTION -->
-          <div id="section-reports" class="hidden"></div>
+          <div id="section-reports" class="hidden print:block"></div>
 
           <!-- AUDIT SECTION -->
-          <div id="section-audit" class="hidden"></div>
+          <div id="section-audit" class="hidden print:hidden"></div>
         </div>
       </main>
     </div>
 
     <!-- AI Chat Widget -->
-    <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end print:hidden">
       <!-- Chat Container -->
       <div id="chat-container" style="height: 500px; max-height: 80vh;" class="hidden w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col mb-4 transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
         <!-- Header -->
@@ -732,7 +312,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="p-4 bg-white border-t border-gray-100">
+        <div class="p-4 bg-white border-t border-gray-100 print:bg-white">
           <form onsubmit="handleChatSubmit(event)" class="flex gap-2 items-end">
             <textarea id="chat-input" rows="1" placeholder="Type a message..." class="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none overflow-y-auto max-h-32" oninput="autoResizeChatInput(this)" onkeydown="handleChatKeydown(event)"></textarea>
             <button type="submit" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-0.5">
@@ -753,6 +333,9 @@
     </div>
 
     <!-- Main Script Logic -->
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none"></div>
+
     <script src="script.js?v=2"></script>
     <script>
       // Initial Load
@@ -781,5 +364,92 @@
       //   }
       // };
     </script>
+    <!-- Modal Portal - Moved outside flex to ensure correct stacking -->
+    <div id="modal-portal" class="fixed inset-0 z-[90] pointer-events-none"></div>
+    <!-- Inventory Alert Modal -->
+<div id="inventoryAlertModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeInventoryAlert()"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-lg ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="inventory-alert-title" class="text-lg leading-6 font-semibold text-gray-900">Notice</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeInventoryAlert()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="inventory-alert-message" class="text-sm text-gray-600"></div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse print:bg-white">
+        <button type="button" onclick="closeInventoryAlert()" class="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-4 right-4 z-[999999] flex flex-col gap-3 pointer-events-none w-full max-w-sm px-4 sm:px-0"></div>
+    <!-- Report Editor Modal (Global) -->
+<div id="reportEditorModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('reportEditorModal')"></div>
+    
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-5xl ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900">Customize Report</h3>
+          <div class="flex items-center gap-2">
+            <input id="reportLogoInput" type="file" accept="image/*" class="hidden" onchange="insertLogoFromFile()">
+            <button type="button" onclick="document.getElementById('reportLogoInput').click()" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Insert Logo</button>
+            <button type="button" onclick="applyEditorCommand('bold')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Bold</button>
+            <button type="button" onclick="applyEditorCommand('italic')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Italic</button>
+            <button type="button" onclick="applyEditorCommand('underline')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Underline</button>
+            <button type="button" onclick="applyEditorCommand('insertUnorderedList')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Bullet</button>
+            <button type="button" onclick="applyEditorCommand('justifyLeft')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Left</button>
+            <button type="button" onclick="applyEditorCommand('justifyCenter')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Center</button>
+            <button type="button" onclick="applyEditorCommand('justifyRight')" class="px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Right</button>
+          </div>
+        </div>
+        <div id="reportEditorArea" contenteditable="true" class="min-h-[50vh] border border-gray-200 rounded-2xl p-4 prose max-w-none"></div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <button type="button" onclick="printEditedReport()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Print</button>
+        <button type="button" onclick="closeModal('reportEditorModal')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PAR Item Picker Modal -->
+<div id="parItemPickerModal" class="fixed z-[999996] inset-0 overflow-y-auto hidden print:hidden" aria-modal="true" role="dialog">
+  <div class="flex min-h-full items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity z-[999995]" aria-hidden="true" onclick="closeModal('parItemPickerModal')"></div>
+    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-3xl ring-1 ring-gray-200/70 z-[999996]">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg leading-6 font-semibold text-gray-900">Select Inventory Item</h3>
+          <button type="button" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600" onclick="closeModal('parItemPickerModal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="relative">
+            <input type="text" id="par-item-search" oninput="parSearchItems(this.value)" class="w-full border rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" placeholder="Search items by name, description, category...">
+            <i class="fa-solid fa-magnifying-glass text-gray-400 absolute right-3 top-3"></i>
+          </div>
+          <div id="par-item-list" class="max-h-[50vh] overflow-y-auto grid grid-cols-1 gap-2">
+            <div class="text-center py-4 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading items...</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse gap-3">
+        <button type="button" onclick="closeModal('parItemPickerModal')" class="inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
   </body>
 </html>
