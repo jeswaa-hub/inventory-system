@@ -435,56 +435,93 @@ function initializePage() {
     startAutoRefresh();
 }
 
-async function handleSecurityCheck(event) {
-    event.preventDefault();
+/**
+ * Simplified Security Check - Direct Click Handler
+ */
+async function handleSecurityCheck() {
+    console.log("[Auth] Security check initiated...");
+    
     const securityInput = document.getElementById('security-input');
-    const password = securityInput.value;
+    const submitBtn = document.getElementById('security-btn');
+    const password = securityInput ? securityInput.value.trim() : '';
 
     if (!password) {
         showToast('Please enter the access script.', 'error');
         return;
     }
 
-    try {
-        const hashedPassword = await sha256(password);
-        let response = null;
-        try {
-            response = await callApi(`?action=verifyAccess&hash=${encodeURIComponent(hashedPassword)}`);
-        } catch (error) {
-            response = { success: false, error: error.message };
+    // Set loading state
+    if (submitBtn) LoadingManager.setBtnLoading(submitBtn, true, 'Verifying...');
+
+    const targetScript = '1Vt_jqc3vo0Z_YMlkSTJVFGDNjB9efBC1075DVu0qbt9p_-0rZ1qfDNYC';
+    
+    // Direct Match Check - The most reliable method
+    if (password === targetScript) {
+        console.log("[Auth] Access Granted!");
+        
+        // 1. Immediate UI Cleanup
+        const modal = document.getElementById('security-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
         }
+        LoadingManager.hideOverlay();
 
-        const localExpectedHash = await sha256('1Vt_jqc3vo0Z_YMlkSTJVFGDNjB9efBC1075DVu0qbt9p_-0rZ1qfDNYC');
-        const localMatch = hashedPassword === localExpectedHash;
+        // 2. Set Session Tokens
+        localStorage.setItem('auth_token', btoa(password));
+        sessionStorage.setItem('auth_token', btoa(password));
 
-        if (response && response.success) {
-            localStorage.setItem('auth_token', hashedPassword);
-            sessionStorage.setItem('auth_token', hashedPassword);
-            document.getElementById('security-modal').classList.add('hidden');
+        // 3. Silent Background Initialization
+        showToast('Access Granted. Loading dashboard...', 'success');
+        
+        setTimeout(() => {
             initializePage();
-            return;
-        }
+            loadSystemConfiguration().catch(e => console.warn("Background config load failed", e));
+        }, 50);
+        return;
+    }
 
-        if (localMatch && response && (response.error || !response.success)) {
-            localStorage.setItem('auth_token', hashedPassword);
-            sessionStorage.setItem('auth_token', hashedPassword);
-            document.getElementById('security-modal').classList.add('hidden');
-            initializePage();
-            return;
-        }
+    // Failure Case
+    console.warn("[Auth] Invalid script.");
+    showToast('Invalid access script.', 'error');
+    if (securityInput) securityInput.value = '';
+    if (submitBtn) LoadingManager.setBtnLoading(submitBtn, false, 'Verify & Access System');
+}
 
-        showToast(response && response.message ? response.message : 'Invalid access script.', 'error');
-        securityInput.value = '';
-    } catch (error) {
-        showToast(`An error occurred: ${error.message}`, 'error');
+/**
+ * Toggle visibility of security access script
+ */
+function toggleSecurityPassword() {
+    const input = document.getElementById('security-input');
+    const eyeIcon = document.getElementById('security-eye');
+    if (!input || !eyeIcon) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
     }
 }
 
+/**
+ * Safer SHA-256 that won't crash in non-secure contexts
+ */
 async function sha256(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    try {
+        if (!window.crypto || !window.crypto.subtle) {
+            return btoa(message); // Fallback to base64 if crypto is unavailable
+        }
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+        return btoa(message);
+    }
 }
 
 function getSectionFromHash() {
@@ -4011,6 +4048,9 @@ function parChooseItem(id) {
 // Global Initialization
 document.addEventListener('DOMContentLoaded', () => {
     LoadingManager.init();
+    
+    // Proactively load config to speed up login
+    loadSystemConfiguration().catch(e => console.warn("Initial config load failed", e));
     
     // Initial Load Overlay
     LoadingManager.showOverlay('Initializing System...', 'Connecting to GovNet Infrastructure');
