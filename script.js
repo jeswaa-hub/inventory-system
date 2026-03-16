@@ -665,6 +665,14 @@ async function loadSection(sectionId, pushState = true) {
     updateActiveNav();
     closeMobileSidebar();
 
+    // Trigger pre-fetching for dashboard/inventory immediately if they aren't loaded yet
+    // This happens in parallel with the HTML template fetch
+    if (sectionId === 'dashboard' && !dashboardCache.loaded) {
+        loadDashboard().catch(e => console.warn('[Pre-fetch] Dashboard fail:', e));
+    } else if (sectionId === 'inventory' && !inventoryCache.loaded) {
+        loadInventory(true).catch(e => console.warn('[Pre-fetch] Inventory fail:', e));
+    }
+
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = '<div class="flex justify-center items-center h-full"><div class="loader"></div></div>'; // Loading spinner
 
@@ -1308,13 +1316,26 @@ function filterDashboardItems(type) {
                         <p class="text-sm font-bold text-gray-900 truncate">${item.ItemName || item.Item}</p>
                         <p class="text-xs text-rose-600 font-black tabular-nums mt-0.5">STOCK: ${item.Quantity || item.Qty}</p>
                     </div>
-                    <button onclick="openEditModal('${item.ID}')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <button onclick="handleQuickViewEdit('${item.ID}')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                         <i class="fa-solid fa-pen-to-square text-blue-500"></i>
                     </button>
                 </div>
             `).join('');
         }
     }, 400);
+}
+
+async function handleQuickViewEdit(itemId) {
+    // Close the quick view modal first
+    closeDashboardQuickView();
+    
+    // Switch to inventory section
+    await loadSection('inventory');
+    
+    // Small delay to ensure the inventory modal is ready after section load
+    setTimeout(() => {
+        openEditModal(itemId);
+    }, 100);
 }
 
 function closeDashboardQuickView() {
@@ -4112,8 +4133,22 @@ function parChooseItem(id) {
 document.addEventListener('DOMContentLoaded', () => {
     LoadingManager.init();
     
-    // Proactively load config to speed up login
-    loadSystemConfiguration().catch(e => console.warn("Initial config load failed", e));
+    // Proactively load config AND essential dashboard data to speed up login
+    const prefetchData = async () => {
+        try {
+            await loadSystemConfiguration();
+            
+            // If we're already authenticated (from previous session), pre-fetch dashboard
+            if (sessionStorage.getItem('auth_token')) {
+                console.log('[Init] Authenticated session found, pre-fetching dashboard data...');
+                loadDashboard().catch(e => console.warn("Dashboard pre-fetch failed", e));
+            }
+        } catch (e) {
+            console.warn("Initial pre-fetch failed", e);
+        }
+    };
+    
+    prefetchData();
     
     // Initial Load Overlay
     LoadingManager.showOverlay('Initializing System...', 'Connecting to GovNet Infrastructure');
