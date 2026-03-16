@@ -4,8 +4,8 @@
   "description": "This is a simple inventory system that uses Google Sheets as a database and Google Apps Script for the backend. The frontend is built with HTML and Tailwind CSS.",
   "main": "Code.js",
   "scripts": {
-    "build": "npx tailwindcss -i ./src/input.css -o ./styles.css --minify",
-    "watch": "npx tailwindcss -i ./src/input.css -o ./styles.css --watch"
+    "build": "npx @tailwindcss/cli -i src/input.css -o styles.css --minify",
+    "watch": "npx @tailwindcss/cli -i src/input.css -o styles.css --watch"
   },
   "repository": {
     "type": "git",
