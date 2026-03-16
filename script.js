@@ -4,8 +4,8 @@
 
 // System Configuration (loaded dynamically)
 let SYSTEM_CONFIG = {
-    scriptId: 'AKfycbxoVWJXHOMAwulbuUoquiE-sSDkVyWKwkgprgOMVyvb7eLUpjnoN8G4YwX6O9YoNv1F',
-    apiBaseUrl: 'https://script.google.com/macros/s/AKfycbxoVWJXHOMAwulbuUoquiE-sSDkVyWKwkgprgOMVyvb7eLUpjnoN8G4YwX6O9YoNv1F/exec',
+    scriptId: 'AKfycbyxD37pGBalcMl1FYU8jVKdCFcUq9PYKMQrpGSCfvtsVH9wA0lpIFeIMp1uszxQ1SRH',
+    apiBaseUrl: 'https://script.google.com/macros/s/AKfycbyxD37pGBalcMl1FYU8jVKdCFcUq9PYKMQrpGSCfvtsVH9wA0lpIFeIMp1uszxQ1SRH/exec',
     batchSize: 10,
     cacheTimeout: 300000,
     enableLogging: true,
@@ -3314,8 +3314,15 @@ async function handleChatSubmit(event) {
     appendChatMessage_({ role: 'user', text: message });
     scrollChatToBottom_();
 
+    // Show typing indicator
+    showChatTypingIndicator_();
+
     const submitButton = input.closest('form') ? input.closest('form').querySelector('button[type="submit"]') : null;
-    if (submitButton) submitButton.disabled = true;
+    if (submitButton && window.SavingButtons) {
+        window.SavingButtons.start(submitButton);
+    } else if (submitButton) {
+        submitButton.disabled = true;
+    }
 
     try {
         const payload = await callApi('?action=geminiChat', {
@@ -3323,16 +3330,33 @@ async function handleChatSubmit(event) {
             body: JSON.stringify({ message })
         });
 
+        // Hide typing indicator
+        hideChatTypingIndicator_();
+
         if (payload && payload.success && payload.text) {
             appendChatMessage_({ role: 'assistant', text: String(payload.text) });
+            if (submitButton && window.SavingButtons) {
+                window.SavingButtons.complete(submitButton, true);
+            }
         } else {
             const err = payload && (payload.error || payload.message) ? String(payload.error || payload.message) : 'Chat request failed';
             appendChatMessage_({ role: 'assistant', text: err, isError: true });
+            if (submitButton && window.SavingButtons) {
+                window.SavingButtons.complete(submitButton, false);
+            }
         }
     } catch (error) {
+        // Hide typing indicator
+        hideChatTypingIndicator_();
+        
         appendChatMessage_({ role: 'assistant', text: error && error.message ? error.message : 'Chat request failed', isError: true });
+        if (submitButton && window.SavingButtons) {
+            window.SavingButtons.complete(submitButton, false);
+        }
     } finally {
-        if (submitButton) submitButton.disabled = false;
+        if (submitButton && !window.SavingButtons) {
+            submitButton.disabled = false;
+        }
         scrollChatToBottom_();
     }
 }
@@ -3382,6 +3406,37 @@ function appendChatMessage_({ role, text, isError }) {
     messages.insertAdjacentHTML('beforeend', content);
 }
 
+function showChatTypingIndicator_() {
+    const messages = document.getElementById('chat-messages');
+    if (!messages || document.getElementById('chat-typing')) return;
+
+    const content = `
+        <div id="chat-typing" class="flex items-start gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div class="flex flex-col gap-1 max-w-[85%]">
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 text-sm text-gray-500 italic">
+                    <span class="flex gap-1">
+                        <span class="animate-bounce" style="animation-delay: 0s">.</span>
+                        <span class="animate-bounce" style="animation-delay: 0.2s">.</span>
+                        <span class="animate-bounce" style="animation-delay: 0.4s">.</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+    messages.insertAdjacentHTML('beforeend', content);
+    scrollChatToBottom_();
+}
+
+function hideChatTypingIndicator_() {
+    const el = document.getElementById('chat-typing');
+    if (el) el.remove();
+}
+
 function scrollChatToBottom_() {
     const messages = document.getElementById('chat-messages');
     if (!messages) return;
@@ -3411,7 +3466,15 @@ function scrollChatToBottom_() {
         const btn = e.target.closest(selector);
         if (!btn) return;
         if (btn.disabled) { e.preventDefault(); return; }
-        setBusy(btn);
+        
+        // If it's a submit button, we must allow the form 'submit' event to fire 
+        // BEFORE we disable the button, otherwise the form won't submit in some browsers.
+        if (btn.type === 'submit') {
+            setTimeout(() => setBusy(btn), 0);
+        } else {
+            setBusy(btn);
+        }
+
         const form = btn.closest('form');
         if (form) {
             form.addEventListener('saving:done', ev => {

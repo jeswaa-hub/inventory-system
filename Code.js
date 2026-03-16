@@ -537,7 +537,19 @@ function geminiChat(payload) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   const context = payload && payload.context ? String(payload.context) : '';
-  const systemPrompt = payload && payload.system ? String(payload.system) : '';
+  const systemPromptFromPayload = payload && payload.system ? String(payload.system) : '';
+  
+  const defaultSystemPrompt = `You are a professional IT Inventory Assistant for the NBP/GovNet Inventory Management System.
+Your primary goal is to provide specific and helpful answers to the user's questions based on the provided inventory data.
+
+CORE RULES:
+1. MULTILINGUAL SUPPORT: Respond in the EXACT SAME LANGUAGE as the user's message.
+   - User asks in Tagalog -> Reply in Tagalog.
+   - User asks in English -> Reply in English.
+2. NO GENERIC SUMMARIES: Do NOT provide a full "Snapshot Analysis" or generic inventory overview unless the user specifically asks for it (e.g., "Give me a summary", "What's the status?", "Overview").
+3. ANSWER THE QUESTION: Focus entirely on answering the user's current question using the BACKEND_DATA_CONTEXT as your source of truth.
+4. TONE & STYLE: Be professional, accurate, and concise. Use markdown (bold, bullet points) for readability.
+5. MISSING DATA: If the information requested is not in the context, politely state that you don't have that information in the current records.`;
 
   const includeBackendData = payload && typeof payload.includeBackendData === 'boolean' ? payload.includeBackendData : true;
   let backendContext = '';
@@ -550,12 +562,18 @@ function geminiChat(payload) {
   }
 
   const parts = [];
-  if (systemPrompt.trim()) parts.push({ text: systemPrompt });
-  if (backendContext.trim()) parts.push({ text: backendContext });
-  if (context.trim()) parts.push({ text: context });
-  parts.push({ text: userMessage });
+  if (backendContext.trim()) {
+    parts.push({ text: `BACKEND_DATA_CONTEXT:\n${backendContext}` });
+  }
+  if (context.trim()) {
+    parts.push({ text: `ADDITIONAL_CONTEXT:\n${context}` });
+  }
+  parts.push({ text: `USER_MESSAGE: ${userMessage}` });
 
   const body = {
+    system_instruction: {
+      parts: [{ text: systemPromptFromPayload || defaultSystemPrompt }]
+    },
     contents: [{ role: 'user', parts }]
   };
 
